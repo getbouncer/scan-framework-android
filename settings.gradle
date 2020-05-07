@@ -1,0 +1,2 @@
+rootProject.name='scan-framework-android'
+include ':scan-framework'

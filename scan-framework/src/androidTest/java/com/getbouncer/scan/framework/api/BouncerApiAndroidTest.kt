@@ -1,0 +1,115 @@
+package com.getbouncer.scan.framework.api
+
+import androidx.test.filters.LargeTest
+import androidx.test.platform.app.InstrumentationRegistry
+import com.getbouncer.scan.framework.Config
+import com.getbouncer.scan.framework.Stats
+import com.getbouncer.scan.framework.api.dto.AppInfo
+import com.getbouncer.scan.framework.api.dto.BouncerErrorResponse
+import com.getbouncer.scan.framework.api.dto.ClientDevice
+import com.getbouncer.scan.framework.api.dto.ModelSignedUrlResponse
+import com.getbouncer.scan.framework.api.dto.ScanStatistics
+import com.getbouncer.scan.framework.api.dto.StatsPayload
+import com.getbouncer.scan.framework.api.dto.ValidateApiKeyResponse
+import com.getbouncer.scan.framework.util.AppDetails
+import com.getbouncer.scan.framework.util.Device
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
+import kotlin.test.fail
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.Serializable
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
+
+class BouncerApiAndroidTest {
+
+    companion object {
+        private const val STATS_PATH = "/scan_stats"
+    }
+
+    private val testContext = InstrumentationRegistry.getInstrumentation().context
+
+    @Before
+    fun before() {
+        Config.apiKey = "uXDc2sbugrkmvj1Bm3xOTXBw7NW4llgn"
+    }
+
+    @After
+    fun after() {
+        Config.apiKey = null
+    }
+
+    @Test
+    @LargeTest
+    fun uploadScanStats() {
+        for (i in 0..100) {
+            runBlocking { Stats.trackRepeatingTask("test_repeating_task_1").trackResult("$i") }
+        }
+
+        for (i in 0..100) {
+            runBlocking { Stats.trackRepeatingTask("test_repeating_task_2").trackResult("$i") }
+        }
+
+        val task1 = runBlocking { Stats.trackTask("test_task_1") }
+        for (i in 0..5) {
+            runBlocking { task1.trackResult("$i") }
+        }
+
+        when (val result = runBlocking { postForResult(
+            path = STATS_PATH,
+            data = StatsPayload(
+                instanceId = "test_instance_id",
+                scanId = "test_scan_id",
+                device = ClientDevice.fromDevice(Device.fromContext(testContext)),
+                app = AppInfo.fromAppDetails(AppDetails.fromContext(testContext)),
+                scanStats = ScanStatistics.fromStats()
+            ),
+            requestSerializer = StatsPayload.serializer(),
+            responseSerializer = ScanStatsResults.serializer(),
+            errorSerializer = BouncerErrorResponse.serializer())
+        }) {
+            is NetworkResult.Success<ScanStatsResults, BouncerErrorResponse> -> {
+                assertEquals(200, result.responseCode)
+            }
+            else -> fail("Network result was not success: $result")
+        }
+    }
+
+    @Test
+    @LargeTest
+    fun validateApiKey() {
+        when (val result = runBlocking { com.getbouncer.scan.framework.api.validateApiKey() }) {
+            is NetworkResult.Success<ValidateApiKeyResponse, BouncerErrorResponse> -> {
+                assertEquals(200, result.responseCode)
+            }
+            else -> fail("network result was not success: $result")
+        }
+    }
+
+    /**
+     * Note, if this test is failing with an unauthorized exception, please make sure that the API
+     * key specified at the top of this file is authorized with DOWNLOAD_VERIFY_MODELS
+     */
+    @Test
+    @LargeTest
+    fun getModelSignedUrl() {
+        when (val result = runBlocking {
+            getModelSignedUrl(
+                "fake_model",
+                "v0.0.1",
+                "model.tflite"
+            )
+        }) {
+            is NetworkResult.Success<ModelSignedUrlResponse, BouncerErrorResponse> -> {
+                assertNotNull(result.body.modelUrl)
+                assertNotEquals("", result.body.modelUrl)
+            }
+            else -> fail("network result was not success: $result")
+        }
+    }
+
+    @Serializable
+    data class ScanStatsResults(val status: String? = "")
+}

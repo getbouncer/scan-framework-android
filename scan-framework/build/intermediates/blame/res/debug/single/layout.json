@@ -1,0 +1,14 @@
+[
+    {
+        "merged": "/Users/adamwushensky/src/getbouncer/scan-framework-android/scan-framework/build/intermediates/res/merged/debug/layout/notification_template_part_chronometer.xml",
+        "source": "/Users/adamwushensky/.gradle/caches/transforms-2/files-2.1/e33a5fdaa21a4d1c7c4b53d40efa5abf/core-1.2.0/res/layout/notification_template_part_chronometer.xml"
+    },
+    {
+        "merged": "/Users/adamwushensky/src/getbouncer/scan-framework-android/scan-framework/build/intermediates/res/merged/debug/layout/custom_dialog.xml",
+        "source": "/Users/adamwushensky/.gradle/caches/transforms-2/files-2.1/e33a5fdaa21a4d1c7c4b53d40efa5abf/core-1.2.0/res/layout/custom_dialog.xml"
+    },
+    {
+        "merged": "/Users/adamwushensky/src/getbouncer/scan-framework-android/scan-framework/build/intermediates/res/merged/debug/layout/notification_template_part_time.xml",
+        "source": "/Users/adamwushensky/.gradle/caches/transforms-2/files-2.1/e33a5fdaa21a4d1c7c4b53d40efa5abf/core-1.2.0/res/layout/notification_template_part_time.xml"
+    }
+]
