@@ -1,10 +1,10 @@
-# CardScan Base
+# Scan Framework
 
-This repository contains the framework and machine learning models needed to quickly and accurately scan payment cards. [CardScan](https://cardscan.io/) is a relatively small library (1.9 MB) that provides fast and accurate payment card scanning.
+This repository contains the framework needed to quickly and accurately scan items (payment cards, IDs, etc.). [CardScan](https://cardscan.io/) is a relatively small library (1.9 MB) that provides fast and accurate payment card scanning.
 
-Note this library does not contain any user interfaces. Another library, [CardScan UI](https://github.com/getbouncer/cardscan-ui-android) builds upon this one any adds simple user interfaces. 
+Note this library does not contain any user interfaces or ML models. Other libraries [Scan Payment](https://github.com/getbouncer/scan-payment-android) and [CardScan UI](https://github.com/getbouncer/cardscan-ui-android) build upon this and add ML models and simple user interfaces. 
 
-CardScan serves as the foundation for CardVerify enterprise libraries, which validate the authenticity of payment cards as they are scanned.
+Scan serves as the foundation for CardScan and CardVerify enterprise libraries, which validate the authenticity of payment cards as they are scanned.
 
 ![CardScan](docs/images/cardscan.png)
 
@@ -13,8 +13,8 @@ CardScan serves as the foundation for CardVerify enterprise libraries, which val
 * [Requirements](#requirements)
 * [Demo](#demo)
 * [Installation](#installation)
-* [Using CardScan](#using-cardscan-base)
-* [Developing CardScan](#developing-cardscan)
+* [Using Scan Framework](#using-scan-framework)
+* [Developing Scan Framework](#developing-scan-framework)
 * [Authors](#authors)
 * [License](#license)
 
@@ -23,28 +23,27 @@ CardScan serves as the foundation for CardVerify enterprise libraries, which val
 * Android API level 21 or higher
 * Kotlin coroutine compatibility
 
-Note: Your app does not have to be written in kotlin to integrate cardscan, but must be able to depend on kotlin functionality.
+Note: Your app does not have to be written in kotlin to integrate scan-framework, but must be able to depend on kotlin functionality.
 
 ## Demo
 
-An app demonstrating the basic capabilities of CardScan is available in [github](https://github.com/getbouncer/cardscan-demo-android).
+An app demonstrating the basic capabilities of scan-framework is available in [github](https://github.com/getbouncer/cardscan-demo-android).
 
 ## Installation
 
-The CardScan libraries are published in the [jcenter](https://jcenter.bintray.com/com/getbouncer/) repository, so for most gradle configurations you only need to add the dependencies to your app's `build.gradle` file:
+The scan-framework libraries are published in the [jcenter](https://jcenter.bintray.com/com/getbouncer/) repository, so for most gradle configurations you only need to add the dependencies to your app's `build.gradle` file:
 
 ```gradle
 dependencies {
-    implementation 'com.getbouncer:scan-framework:2.0.0004'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.3'
+    implementation 'com.getbouncer:scan-framework:2.0.0005'
 }
 ```
 
-## Using cardscan-base
+## Using scan-framework
 
-CardScan Base is designed to be used with [CardScan UI](https://github.com/getbouncer/cardscan-ui-android), which will provide user interfaces for scanning payment cards. However, it can be used independently.
+scan-framework is designed to be used with [scan-payment](https://github.com/getbouncer/scan-payment-android), which will provide user interfaces for scanning payment cards. However, it can be used independently.
 
-For an overview of the architecture and design of the cardscan framework, see the [architecture documentation](docs/architecture.md).
+For an overview of the architecture and design of the scan-framework, see the [architecture documentation](docs/architecture.md).
 
 ### Processing unlimited data
 
@@ -250,9 +249,9 @@ class MyCameraAnalyzer : CoroutineScope, AggregateResultListener<PreviewImage, U
 }
 ```
 
-## Developing CardScan
+## Developing scan-framework
 
-See the [development documentation](docs/develop.md) for details on developing for CardScan.
+See the [development documentation](docs/develop.md) for details on developing for scan-framework.
 
 ## Authors
 
@@ -260,13 +259,13 @@ Adam Wushensky, Sam King, and Zain ul Abi Din
 
 ## License
 
-CardScan is available under paid and free licenses. See the [LICENSE](LICENSE) file for the full license text.
+scan-framework is available under paid and free licenses. See the [LICENSE](LICENSE) file for the full license text.
 
 ### Quick summary
 
-In short, CardScan will remain free forever for non-commercial applications, but use by commercial applications is limited to 90 days, after which time a licensing agreement is required. We're also adding some legal liability protections.
+In short, scan-framework will remain free forever for non-commercial applications, but use by commercial applications is limited to 90 days, after which time a licensing agreement is required. We're also adding some legal liability protections.
 
-After this period commercial applications need to convert to a licensing agreement to continue to use CardScan.
+After this period commercial applications need to convert to a licensing agreement to continue to use scan-framework.
 * Details of licensing (pricing, etc) are available at [https://cardscan.io/pricing](https://cardscan.io/pricing), or you can contact us at [license@getbouncer.com](mailto:license@getbouncer.com).
 
 ### More detailed summary

@@ -11,7 +11,7 @@ private const val REQUIRED_API_KEY_LENGTH = 32
 object Config {
 
     /**
-     * If set to true, turns on debug information in CardScan.
+     * If set to true, turns on debug information.
      */
     @JvmStatic
     var isDebug: Boolean = false

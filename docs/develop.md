@@ -1,6 +1,6 @@
 # Development
 
-cardscan-base development guide
+scan-framework development guide
 
 ## Contents
 
@@ -13,33 +13,33 @@ cardscan-base development guide
 
 ## Dependencies
 
-CardScan requires kotlin coroutine libraries for handling concurrency. Note that your app does not need to be written in kotlin to work with CardScan; The [demo app](https://github.com/getbouncer/cardscan-demo-android) is written in Java.
+scan-framework requires kotlin coroutine libraries for handling concurrency. Note that your app does not need to be written in kotlin to work with scan-framework; The [demo app](https://github.com/getbouncer/cardscan-demo-android) is written in Java.
 
 ## Architecture
 
-For an overview of the architecture and design of the cardscan framework, see the [architecture documentation](architecture.md).
+For an overview of the architecture and design of the scan-framework, see the [architecture documentation](architecture.md).
 
 ## Building
 
 Check out the project using `git`. Note that this project makes use of submodules, so a `recursive` clone is recommended.
 ```bash
-git clone --recursive https://github.com/getbouncer/cardscan-base-android
+git clone --recursive https://github.com/getbouncer/scan-framework-android
 ```
 
 To build the project, run the following command:
 ```bash
-./gradlew cardscan-base:build
+./gradlew scan-framework:build
 ```
 
 To create an AAR release of the library, run the following command:
 ```bash
-./gradlew cardscan-base:assembleRelease
+./gradlew scan-framework:assembleRelease
 ```
-This will place an AAR file in `cardscan-base/build/outputs/aar`
+This will place an AAR file in `scan-framework/build/outputs/aar`
 
 ## Contributing
 
-CardScan libraries follow a standard github contribution flow.
+scan-framework libraries follow a standard github contribution flow.
 
 1. Create a new github feature branch
     ```bash

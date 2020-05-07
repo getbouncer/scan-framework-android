@@ -176,7 +176,7 @@ Stats will include details about the device, including the following:
 * app package name
 * application id
 * library package name
-* CardScan version
+* framework version
 
 Stats are global to the SDK, and allow tracking individual or repeating tasks at any point in the SDK. Stats keep a running list of tasks and their results, which are sent to bouncer servers at the conclusion of a scan.
 
@@ -194,4 +194,4 @@ Repeating task stats will track the count of each kind of result from the repeat
 
 The SDK uses `CameraAdapters` to stream data from a camera API to a [process-bound analyzer loop](#process-bound-analyzer-loop). These adapters can make use of Camera 1, Camera 2, or Camera X APIs. When images are available from the camera in `Bitmap` format, the images are sent to the loop via the `processFrame` method on the loop.
 
-Camera code exists in the [UI](https://github.com/getbouncer/cardscan-ui-android) module.
+Camera code exists in the [Camera](https://github.com/getbouncer/scan-camera-android) module.
