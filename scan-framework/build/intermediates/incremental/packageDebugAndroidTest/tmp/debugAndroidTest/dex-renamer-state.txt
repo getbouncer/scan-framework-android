@@ -1,7 +1,0 @@
-#Thu May 07 12:14:43 PDT 2020
-base.0=/Users/adamwushensky/src/getbouncer/scan-framework-android/scan-framework/build/intermediates/dex/debugAndroidTest/mergeExtDexDebugAndroidTest/out/classes.dex
-path.1=classes.dex
-renamed.1=classes2.dex
-path.0=classes.dex
-renamed.0=classes.dex
-base.1=/Users/adamwushensky/src/getbouncer/scan-framework-android/scan-framework/build/intermediates/dex/debugAndroidTest/mergeProjectDexDebugAndroidTest/out/classes.dex
