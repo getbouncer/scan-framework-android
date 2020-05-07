@@ -1,6 +1,6 @@
 # Release
 
-scan-framework release guide
+Release guide
 
 ## Contents
 

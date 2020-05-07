@@ -1,6 +1,6 @@
 # Development
 
-scan-framework development guide
+Development guide
 
 ## Contents
 
@@ -13,11 +13,11 @@ scan-framework development guide
 
 ## Dependencies
 
-scan-framework requires kotlin coroutine libraries for handling concurrency. Note that your app does not need to be written in kotlin to work with scan-framework; The [demo app](https://github.com/getbouncer/cardscan-demo-android) is written in Java.
+This library requires kotlin coroutine libraries for handling concurrency. Note that your app does not need to be written in kotlin to work with this library; The [demo app](https://github.com/getbouncer/cardscan-demo-android) is written in Java.
 
 ## Architecture
 
-For an overview of the architecture and design of the scan-framework, see the [architecture documentation](architecture.md).
+For an overview of the architecture and design of the scan framework, see the [architecture documentation](https://github.com/getbouncer/scan-framework-android/tree/master/docs/architecture.md).
 
 ## Building
 
@@ -39,7 +39,7 @@ This will place an AAR file in `scan-framework/build/outputs/aar`
 
 ## Contributing
 
-scan-framework libraries follow a standard github contribution flow.
+This library follows a standard github contribution flow.
 
 1. Create a new github feature branch
     ```bash
