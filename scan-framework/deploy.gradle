@@ -23,7 +23,7 @@ ext {
     developerEmail = 'contact@getbouncer.com'
 
     licenseName = 'bouncer-free-1'
-    licenseUrl = 'https://github.com/getbouncer/cardscan-base-android/blob/0a5643243704792049b8d7c263d3ae7750f41060/LICENSE'
+    licenseUrl = 'https://github.com/getbouncer/scan-framework-android/tree/master/LICENSE'
     allLicenses = ["bouncer-free-1"]
 }
 
