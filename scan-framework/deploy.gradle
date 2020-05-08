@@ -11,7 +11,7 @@ ext {
     libraryName = 'scan-framework'
     artifact = 'scan-framework'
 
-    libraryDescription = 'This library provides the framework for scanning cards.'
+    libraryDescription = 'This library provides the framework for scanning'
 
     siteUrl = 'https://github.com/getbouncer/scan-framework-android'
     gitUrl = 'https://github.com/getbouncer/scan-framework-android.git'
