@@ -196,7 +196,7 @@ abstract class ModelWebLoader(context: Context) : WebLoader(context) {
             is NetworkResult.Success<ModelSignedUrlResponse, BouncerErrorResponse> ->
                 URL(signedUrlResponse.body.modelUrl)
             else -> {
-                throw IOException("Unable to get model signed URL")
+                URL("${NetworkConfig.baseUrl}/v1/signed_url_failure/model/$modelClass/$modelVersion/android/$modelFileName")
             }
         }
     }

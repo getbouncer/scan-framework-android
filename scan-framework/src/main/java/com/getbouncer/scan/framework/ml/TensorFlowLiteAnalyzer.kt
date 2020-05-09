@@ -65,7 +65,7 @@ abstract class TFLAnalyzerFactory<Output : Analyzer<*, *, *>>(private val loader
     protected suspend fun createInterpreter(): Interpreter? {
         val modelData = loadModel()
         return if (modelData == null) {
-            Log.e(Config.logTag, "Unable to load ${this::javaClass.name} model")
+            Log.e(Config.logTag, "Unable to load model")
             null
         } else {
             Interpreter(modelData, tfOptions)
