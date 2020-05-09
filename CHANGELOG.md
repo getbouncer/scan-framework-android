@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.0006](https://github.com/getbouncer/scan-framework-android/tree/2.0.0006) (2020-05-09)
+
+[Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0005...2.0.0006)
+
+**Merged pull requests:**
+
+- Fix signedUrl failure crash [\#3](https://github.com/getbouncer/scan-framework-android/pull/3) ([awushensky](https://github.com/awushensky))
+
 ## [2.0.0005](https://github.com/getbouncer/scan-framework-android/tree/2.0.0005) (2020-05-08)
 
 [Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/e0e5089a945c8b6b6ed47f3838d3d61997c1afe4...2.0.0005)
