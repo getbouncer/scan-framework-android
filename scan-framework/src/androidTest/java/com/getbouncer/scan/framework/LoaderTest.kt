@@ -109,4 +109,24 @@ class LoaderTest {
 
         assertNull(runBlocking { ModelWebLoaderImpl(testContext).loadData() })
     }
+
+    @Test
+    @LargeTest
+    fun loadModelFromWeb_signedUrlFail() {
+        Config.apiKey = "4U7hWrEBdmgZrrIOQanpzJTaiwlZPFhf"
+        val localFileName = "test_loadModelFromWeb_fail"
+        val localFile = File(testContext.cacheDir, localFileName)
+        if (localFile.exists()) {
+            localFile.delete()
+        }
+
+        class ModelWebLoaderImpl(context: Context) : ModelWebLoader(context) {
+            override val modelClass = "object_detection"
+            override val modelVersion = "v0.0.3"
+            override val modelFileName = "ssd.tflite"
+            override val hash: String = "7c5a294ff9a1e665f07d3e64d898062e17a2348f01b0be75b2d5295988ce6a4c"
+        }
+
+        assertNull(runBlocking { ModelWebLoaderImpl(testContext).loadData() })
+    }
 }
