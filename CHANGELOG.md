@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.0007](https://github.com/getbouncer/scan-framework-android/tree/2.0.0007) (2020-05-12)
+
+[Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0006...2.0.0007)
+
+**Merged pull requests:**
+
+- Fix crash on network failure [\#4](https://github.com/getbouncer/scan-framework-android/pull/4) ([awushensky](https://github.com/awushensky))
+
 ## [2.0.0006](https://github.com/getbouncer/scan-framework-android/tree/2.0.0006) (2020-05-09)
 
 [Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0005...2.0.0006)
