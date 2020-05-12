@@ -96,7 +96,7 @@ abstract class WebLoader(private val context: Context) : Loader {
         val loadException = this@WebLoader.loadException
         if (loadException != null) {
             stat.trackResult(loadException::class.java.simpleName)
-            throw loadException
+            return null
         }
 
         try {
@@ -105,7 +105,7 @@ abstract class WebLoader(private val context: Context) : Loader {
             this@WebLoader.loadException = t
             stat.trackResult(t::class.java.simpleName)
             Log.e(Config.logTag, "Failed to get signed url for model", t)
-            return@withLock null
+            return null
         }
         stat.trackResult("success")
         readFileToByteBuffer(localFileName)
@@ -191,8 +191,10 @@ abstract class ModelWebLoader(context: Context) : WebLoader(context) {
     abstract val modelVersion: String
     abstract val modelFileName: String
 
-    override val url: URL by lazy {
-        when (val signedUrlResponse = runBlocking { getModelSignedUrl(modelClass, modelVersion, modelFileName) }) {
+    override val url: URL by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+        when (val signedUrlResponse = runBlocking {
+            getModelSignedUrl(modelClass, modelVersion, modelFileName)
+        }) {
             is NetworkResult.Success<ModelSignedUrlResponse, BouncerErrorResponse> ->
                 URL(signedUrlResponse.body.modelUrl)
             else -> {
