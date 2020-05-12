@@ -64,27 +64,27 @@ private fun <Response, Error> translateNetworkResult(
     errorSerializer: KSerializer<Error>
 ): NetworkResult<Response, Error> = when (networkResult) {
     is NetworkResult.Success -> try {
-        NetworkResult.Success(
+        NetworkResult.Success<Response, Error>(
             responseCode = networkResult.responseCode,
             body = Config.json.parse(responseSerializer, networkResult.body)
         )
     } catch (t: Throwable) {
         try {
-            NetworkResult.Error(
+            NetworkResult.Error<Response, Error>(
                 responseCode = networkResult.responseCode,
                 error = Config.json.parse(errorSerializer, networkResult.body)
             )
         } catch (et: Throwable) {
-            NetworkResult.Exception(networkResult.responseCode, t)
+            NetworkResult.Exception<Response, Error>(networkResult.responseCode, t)
         }
     }
     is NetworkResult.Error -> try {
-        NetworkResult.Error(
+        NetworkResult.Error<Response, Error>(
             responseCode = networkResult.responseCode,
             error = Config.json.parse(errorSerializer, networkResult.error)
         )
     } catch (t: Throwable) {
-        NetworkResult.Exception(networkResult.responseCode, t)
+        NetworkResult.Exception<Response, Error>(networkResult.responseCode, t)
     }
     is NetworkResult.Exception -> NetworkResult.Exception(
         responseCode = networkResult.responseCode,
