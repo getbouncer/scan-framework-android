@@ -41,27 +41,19 @@ suspend fun <Request, Response, Error> postForResult(
     responseSerializer: KSerializer<Response>,
     errorSerializer: KSerializer<Error>
 ): NetworkResult<Response, Error> =
-    try {
-        translateNetworkResult(
-            postJsonWithRetries(
-                path = path,
-                jsonData = Config.json.stringify(requestSerializer, data)
-            ), responseSerializer, errorSerializer
-        )
-    } catch (t: Throwable) {
-        NetworkResult.Exception(responseCode = -1, exception = t)
-    }
+    translateNetworkResult(
+        postJsonWithRetries(
+            path = path,
+            jsonData = Config.json.stringify(requestSerializer, data)
+        ), responseSerializer, errorSerializer
+    )
 
 suspend fun <Response, Error> getForResult(
     path: String,
     responseSerializer: KSerializer<Response>,
     errorSerializer: KSerializer<Error>
 ): NetworkResult<Response, Error> =
-    try {
-        translateNetworkResult(getWithRetries(path), responseSerializer, errorSerializer)
-    } catch (t: Throwable) {
-        NetworkResult.Exception(responseCode = -1, exception = t)
-    }
+    translateNetworkResult(getWithRetries(path), responseSerializer, errorSerializer)
 
 /**
  * Translate a string network result to a response or error.
@@ -83,13 +75,17 @@ private fun <Response, Error> translateNetworkResult(
                 error = Config.json.parse(errorSerializer, networkResult.body)
             )
         } catch (et: Throwable) {
-            throw t
+            NetworkResult.Exception<Response, Error>(networkResult.responseCode, t)
         }
     }
-    is NetworkResult.Error -> NetworkResult.Error(
-        responseCode = networkResult.responseCode,
-        error = Config.json.parse(errorSerializer, networkResult.error)
-    )
+    is NetworkResult.Error -> try {
+        NetworkResult.Error<Response, Error>(
+            responseCode = networkResult.responseCode,
+            error = Config.json.parse(errorSerializer, networkResult.error)
+        )
+    } catch (t: Throwable) {
+        NetworkResult.Exception<Response, Error>(networkResult.responseCode, t)
+    }
     is NetworkResult.Exception -> NetworkResult.Exception(
         responseCode = networkResult.responseCode,
         exception = networkResult.exception
