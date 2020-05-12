@@ -35,7 +35,7 @@ The scan-framework libraries are published in the [jcenter](https://jcenter.bint
 
 ```gradle
 dependencies {
-    implementation 'com.getbouncer:scan-framework:2.0.0006'
+    implementation 'com.getbouncer:scan-framework:2.0.0007'
 }
 ```
 
