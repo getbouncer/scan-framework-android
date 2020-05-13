@@ -238,13 +238,26 @@ fun Bitmap.crop(crop: Rect): Bitmap {
     )
 }
 
-fun Bitmap.rotate(rotationDegrees: Float): Bitmap {
+fun Bitmap.rotate(rotationDegrees: Float): Bitmap = if (rotationDegrees != 0F) {
     val matrix = Matrix()
     matrix.postRotate(rotationDegrees)
-    return Bitmap.createBitmap(this, 0, 0, this.width, this.height, matrix, true)
+    Bitmap.createBitmap(this, 0, 0, this.width, this.height, matrix, true)
+} else {
+    this
 }
 
 fun Bitmap.scale(size: Size, filter: Boolean = false): Bitmap =
-    Bitmap.createScaledBitmap(this, size.width, size.height, filter)
+    if (size.width == width && size.height == height) {
+        this
+    } else {
+        Bitmap.createScaledBitmap(this, size.width, size.height, filter)
+    }
+
+fun Bitmap.scale(percentage: Float, filter: Boolean = false): Bitmap =
+    if (percentage == 1F) {
+        this
+    } else {
+        Bitmap.createScaledBitmap(this, (width * percentage).toInt(), (height * percentage).toInt(), filter)
+    }
 
 fun Bitmap.size(): Size = Size(this.width, this.height)
