@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.max
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -203,6 +204,7 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, FinalResult>(
     private val haveSeenValidResult = AtomicBoolean(false)
 
     private var isPaused = false
+    private var isFinished = false
 
     private val savedFrames = mutableMapOf<String, LinkedList<SavedFrame<DataFrame, State, AnalyzerResult>>>()
     private val savedFramesSizeBytes = mutableMapOf<String, Int>()
@@ -212,7 +214,13 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, FinalResult>(
 
     private val saveFrameMutex = Mutex()
     private val frameRateMutex = Mutex()
+    private val resultMutex = Mutex()
 
+    /**
+     * Reset the state of the aggregator and pause aggregation. This is useful for aggregating data
+     * that can become invalid, such as when a user is scanning an object, and moves the object away
+     * from the camera before the scan has completed.
+     */
     open fun resetAndPause() {
         isPaused = true
 
@@ -225,6 +233,9 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, FinalResult>(
         savedFramesSizeBytes.clear()
     }
 
+    /**
+     * Resume aggregation after it has been paused.
+     */
     open fun resume() {
         isPaused = false
     }
@@ -250,8 +261,8 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, FinalResult>(
         state: LoopState<State>,
         data: DataFrame,
         updateState: (LoopState<State>) -> Unit
-    ) {
-        if (state.finished || isPaused) {
+    ) = resultMutex.withLock {
+        if (state.finished || isPaused || isFinished) {
             return
         }
 
@@ -268,14 +279,16 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, FinalResult>(
             val hasSavedEnoughFrames = saveFrames(result, state.state, data)
 
             if (validResult) {
-                listener.onInterimResult(
+                launch { listener.onInterimResult(
                     result = result,
                     state = state.state,
                     frame = data,
                     isFirstValidResult = !haveSeenValidResult.getAndSet(true)
-                )
+                ) }
             } else {
-                listener.onInvalidResult(result, state.state, data, haveSeenValidResult.get())
+                launch {
+                    listener.onInvalidResult(result, state.state, data, haveSeenValidResult.get())
+                }
             }
 
             val finalResult = aggregateResult(
@@ -287,46 +300,53 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, FinalResult>(
 
             aggregatorExecutionStats.trackResult("frame_processed")
             if (finalResult != null) {
+                isFinished = true
                 updateState(state.copy(finished = true))
-                listener.onResult(finalResult, savedFrames)
+                launch { listener.onResult(finalResult, savedFrames) }
             }
         }
     }
 
+    /**
+     * Determine how frames should be classified using [getSaveFrameIdentifier], and then store them
+     * in a map of frames based on that identifier.
+     *
+     * This method keeps track of the total number of saved frames and the total size of saved
+     * frames. If the total number or total size exceeds the maximum allowed in the aggregator
+     * configuration, the oldest frames will be dropped.
+     */
     private suspend fun saveFrames(result: AnalyzerResult, state: State, data: DataFrame): Boolean {
-        val savedFrameType = getSaveFrameIdentifier(result, data)
+        val savedFrameType = getSaveFrameIdentifier(result, data) ?: return false
         return saveFrameMutex.withLock {
             val typedSavedFrames = savedFrames[savedFrameType] ?: LinkedList()
 
-            if (savedFrameType != null) {
-                val maxSavedFrames = config.maxSavedFrames[savedFrameType] ?: config.defaultMaxSavedFrames
-                val storageBytes = config.frameStorageBytes[savedFrameType] ?: config.defaultFrameStorageBytes
+            val maxSavedFrames = config.maxSavedFrames[savedFrameType] ?: config.defaultMaxSavedFrames
+            val storageBytes = config.frameStorageBytes[savedFrameType] ?: config.defaultFrameStorageBytes
 
-                var typedSizeBytes = (savedFramesSizeBytes[savedFrameType] ?: 0) + getFrameSizeBytes(data)
-                while (storageBytes != null && typedSizeBytes > storageBytes) {
-                    // saved frames is over storage limit, reduce until it's not
-                    if (typedSavedFrames.size > 0) {
-                        val removedFrame = typedSavedFrames.removeFirst()
-                        typedSizeBytes -= getFrameSizeBytes(removedFrame.data)
-                    } else {
-                        typedSizeBytes = 0
-                    }
-                }
-
-                while (maxSavedFrames != null && typedSavedFrames.size > maxSavedFrames) {
-                    // saved frames is over size limit, reduce until it's not
+            var typedSizeBytes = (savedFramesSizeBytes[savedFrameType] ?: 0) + getFrameSizeBytes(data)
+            while (storageBytes != null && typedSizeBytes > storageBytes) {
+                // saved frames is over storage limit, reduce until it's not
+                if (typedSavedFrames.size > 0) {
                     val removedFrame = typedSavedFrames.removeFirst()
-                    typedSizeBytes = max(0, typedSizeBytes - getFrameSizeBytes(removedFrame.data))
+                    typedSizeBytes -= getFrameSizeBytes(removedFrame.data)
+                } else {
+                    typedSizeBytes = 0
                 }
+            }
 
-                savedFramesSizeBytes[savedFrameType] = typedSizeBytes
-                typedSavedFrames.add(SavedFrame(data, state, result))
-                savedFrames[savedFrameType] = typedSavedFrames
+            while (maxSavedFrames != null && typedSavedFrames.size > maxSavedFrames) {
+                // saved frames is over size limit, reduce until it's not
+                val removedFrame = typedSavedFrames.removeFirst()
+                typedSizeBytes = max(0, typedSizeBytes - getFrameSizeBytes(removedFrame.data))
+            }
 
-                val requiredSavedFrames = config.requiredSavedFrames[savedFrameType] ?: Int.MAX_VALUE
-                if (savedFrames[savedFrameType]?.size ?: 0 >= requiredSavedFrames) {
-                    return@withLock true
-                }
+            savedFramesSizeBytes[savedFrameType] = typedSizeBytes
+            typedSavedFrames.add(SavedFrame(data, state, result))
+            savedFrames[savedFrameType] = typedSavedFrames
+
+            val requiredSavedFrames = config.requiredSavedFrames[savedFrameType] ?: Int.MAX_VALUE
+            if (savedFrames[savedFrameType]?.size ?: 0 >= requiredSavedFrames) {
+                return@withLock true
             }
 
             false
@@ -352,17 +372,8 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, FinalResult>(
     /**
      * Determine if a result is valid for tracking purposes.
      */
-    /**
-     * Determine if a result is valid for tracking purposes.
-     */
     abstract fun isValidResult(result: AnalyzerResult): Boolean
 
-    /**
-     * Determine if a data frame should be saved for future processing. Note that [result] may be
-     * invalid.
-     *
-     * If this method returns a non-null string, the frame will be saved under that identifier.
-     */
     /**
      * Determine if a data frame should be saved for future processing. Note that [result] may be
      * invalid.
@@ -374,15 +385,8 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, FinalResult>(
     /**
      * Determine the size in memory that this data frame takes up.
      */
-    /**
-     * Determine the size in memory that this data frame takes up.
-     */
     abstract fun getFrameSizeBytes(frame: DataFrame): Int
 
-    /**
-     * Calculate the current rate at which the [AnalyzerLoop] is processing images. Notify the
-     * listener of the result.
-     */
     /**
      * Calculate the current rate at which the [AnalyzerLoop] is processing images. Notify the
      * listener of the result.
