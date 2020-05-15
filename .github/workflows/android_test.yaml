@@ -18,7 +18,7 @@ jobs:
           token: ${{secrets.SERVICE_PERSONAL_ACCESS_TOKEN}}
           submodules: recursive
 
-      - name: run tests
+      - name: test
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
