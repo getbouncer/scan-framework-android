@@ -1,4 +1,4 @@
-Name: Instrumentation Tests
+name: Instrumentation Tests
 
 on:
   push:
