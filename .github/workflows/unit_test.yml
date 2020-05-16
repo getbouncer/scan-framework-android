@@ -26,7 +26,8 @@ jobs:
       - name: test
         run: ./gradlew scan-framework:test
 
-      - uses: actions/upload-artifact@v2
+      - name: upload-artifacts
+        uses: actions/upload-artifact@v2
         if: failure()
         with:
           name: test-report
