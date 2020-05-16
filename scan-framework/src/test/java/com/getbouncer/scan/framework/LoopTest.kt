@@ -3,11 +3,11 @@ package com.getbouncer.scan.framework
 import androidx.test.filters.SmallTest
 import com.getbouncer.scan.framework.time.milliseconds
 import com.getbouncer.scan.framework.time.nanoseconds
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.fail
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.test.runBlockingTest
 import kotlinx.coroutines.yield
