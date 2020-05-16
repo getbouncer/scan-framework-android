@@ -1,9 +1,9 @@
 package com.getbouncer.scan.framework
 
 import androidx.test.filters.SmallTest
+import kotlin.test.assertEquals
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
-import kotlin.test.assertEquals
 
 class AnalyzerTest {
 

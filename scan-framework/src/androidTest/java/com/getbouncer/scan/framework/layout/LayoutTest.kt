@@ -5,8 +5,8 @@ import android.util.Size
 import androidx.test.filters.SmallTest
 import com.getbouncer.scan.framework.util.maxAspectRatioInSize
 import com.getbouncer.scan.framework.util.scaleAndCenterWithin
-import org.junit.Test
 import kotlin.test.assertEquals
+import org.junit.Test
 
 class LayoutTest {
 

@@ -3,14 +3,14 @@ package com.getbouncer.scan.framework
 import androidx.test.filters.MediumTest
 import com.getbouncer.scan.framework.time.milliseconds
 import com.getbouncer.scan.framework.time.nanoseconds
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import org.junit.Test
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.fail
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import org.junit.Test
 
 class LoopTest {
 
