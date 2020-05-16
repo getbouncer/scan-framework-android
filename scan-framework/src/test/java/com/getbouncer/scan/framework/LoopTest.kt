@@ -1,22 +1,24 @@
 package com.getbouncer.scan.framework
 
-import androidx.test.filters.MediumTest
+import androidx.test.filters.SmallTest
 import com.getbouncer.scan.framework.time.milliseconds
 import com.getbouncer.scan.framework.time.nanoseconds
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.fail
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.yield
 import org.junit.Test
 
 class LoopTest {
 
     @Test(timeout = 1000)
-    @MediumTest
-    fun processBoundAnalyzerLoop_analyzeData() {
+    @SmallTest
+    @ExperimentalCoroutinesApi
+    fun processBoundAnalyzerLoop_analyzeData() = runBlockingTest {
         val dataCount = 3
         val resultCount = AtomicInteger(0)
 
@@ -34,10 +36,10 @@ class LoopTest {
             }
         }
 
-        val analyzerPool = runBlocking { AnalyzerPool.Factory(
+        val analyzerPool = AnalyzerPool.Factory(
             analyzerFactory = TestAnalyzerFactory(),
             desiredAnalyzerCount = 12
-        ).buildAnalyzerPool() }
+        ).buildAnalyzerPool()
 
         val loop = ProcessBoundAnalyzerLoop(
             analyzerPool = analyzerPool,
@@ -48,25 +50,26 @@ class LoopTest {
             resultHandler = TestResultHandler()
         )
 
-        runBlocking {
-            loop.start(GlobalScope)
-        }
+        loop.start(GlobalScope)
 
         repeat(dataCount) {
-            assertTrue { runBlocking {
-                delay(10)
-                loop.processFrame(2)
-            } }
+            var processedFrame = false
+            while (!processedFrame) {
+                processedFrame = loop.processFrame(2)
+                yield()
+            }
         }
 
-        while (resultCount.get() < dataCount) {
-            Thread.sleep(10)
+        while(dataCount > resultCount.get()) {
+            yield()
         }
+        assertEquals(dataCount, resultCount.get())
     }
 
     @Test(timeout = 1000)
-    @MediumTest
-    fun processBoundAnalyzerLoop_noAnalyzersAvailable() {
+    @SmallTest
+    @ExperimentalCoroutinesApi
+    fun processBoundAnalyzerLoop_noAnalyzersAvailable() = runBlockingTest {
         var analyzerFailure = false
 
         class TestResultHandler : StateUpdatingResultHandler<Int, LoopState<Int>, Int> {
@@ -82,10 +85,10 @@ class LoopTest {
             }
         }
 
-        val analyzerPool = runBlocking { AnalyzerPool.Factory(
+        val analyzerPool = AnalyzerPool.Factory(
             analyzerFactory = TestAnalyzerFactory(),
             desiredAnalyzerCount = 0
-        ).buildAnalyzerPool() }
+        ).buildAnalyzerPool()
 
         val loop = ProcessBoundAnalyzerLoop(
             analyzerPool = analyzerPool,
@@ -96,18 +99,17 @@ class LoopTest {
             resultHandler = TestResultHandler()
         )
 
-        runBlocking {
-            loop.start(GlobalScope)
-        }
+        loop.start(GlobalScope)
 
         while (!analyzerFailure) {
-            Thread.sleep(10)
+            yield()
         }
     }
 
     @Test(timeout = 1000)
-    @MediumTest
-    fun finiteAnalyzerLoop_analyzeData() {
+    @SmallTest
+    @ExperimentalCoroutinesApi
+    fun finiteAnalyzerLoop_analyzeData() = runBlockingTest {
         val dataCount = 3
         var dataProcessed = false
         val resultCount = AtomicInteger(0)
@@ -130,10 +132,10 @@ class LoopTest {
             }
         }
 
-        val analyzerPool = runBlocking { AnalyzerPool.Factory(
+        val analyzerPool = AnalyzerPool.Factory(
             analyzerFactory = TestAnalyzerFactory(),
             desiredAnalyzerCount = 12
-        ).buildAnalyzerPool() }
+        ).buildAnalyzerPool()
 
         val loop = FiniteAnalyzerLoop(
             analyzerPool = analyzerPool,
@@ -146,18 +148,17 @@ class LoopTest {
             timeLimit = 500.milliseconds
         )
 
-        runBlocking {
-            loop.start(GlobalScope)
-        }
+        loop.start(GlobalScope)
 
         while (!dataProcessed) {
-            Thread.sleep(10)
+            yield()
         }
     }
 
     @Test(timeout = 1000)
-    @MediumTest
-    fun finiteAnalyzerLoop_analyzeDataTimeout() {
+    @SmallTest
+    @ExperimentalCoroutinesApi
+    fun finiteAnalyzerLoop_analyzeDataTimeout() = runBlockingTest {
         val dataCount = 10000
         val resultCount = AtomicInteger(0)
         var terminatedEarly = false
@@ -180,10 +181,10 @@ class LoopTest {
             }
         }
 
-        val analyzerPool = runBlocking { AnalyzerPool.Factory(
+        val analyzerPool = AnalyzerPool.Factory(
             analyzerFactory = TestAnalyzerFactory(),
             desiredAnalyzerCount = 12
-        ).buildAnalyzerPool() }
+        ).buildAnalyzerPool()
 
         val loop = FiniteAnalyzerLoop(
             analyzerPool = analyzerPool,
@@ -196,12 +197,10 @@ class LoopTest {
             timeLimit = 1.nanoseconds
         )
 
-        runBlocking {
-            loop.start(GlobalScope)
-        }
+        loop.start(GlobalScope)
 
         while (!terminatedEarly) {
-            Thread.sleep(10)
+            yield()
         }
     }
 
