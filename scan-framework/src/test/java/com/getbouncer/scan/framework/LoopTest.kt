@@ -60,10 +60,12 @@ class LoopTest {
             }
         }
 
-        while(dataCount > resultCount.get()) {
+        while (dataCount > resultCount.get()) {
             yield()
         }
         assertEquals(dataCount, resultCount.get())
+
+        fail()
     }
 
     @Test(timeout = 1000)
