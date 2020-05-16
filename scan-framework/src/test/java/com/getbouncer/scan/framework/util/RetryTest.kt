@@ -43,7 +43,7 @@ class RetryTest {
         var executions = 0
 
         assertFailsWith<RuntimeException> {
-            runBlocking { retry(1.milliseconds) {
+            runBlocking { retry<Int>(1.milliseconds) {
                 executions++
                 throw RuntimeException()
             } }

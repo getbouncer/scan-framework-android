@@ -25,3 +25,10 @@ jobs:
 
       - name: test
         run: ./gradlew scan-framework:test
+
+      - name: upload-artifacts
+        uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: test-report
+          path: ${{ github.workspace }}/scan-framework/build/reports/

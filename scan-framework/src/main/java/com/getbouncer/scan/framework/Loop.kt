@@ -1,6 +1,5 @@
 package com.getbouncer.scan.framework
 
-import android.util.Log
 import com.getbouncer.scan.framework.time.Clock
 import com.getbouncer.scan.framework.time.ClockMark
 import com.getbouncer.scan.framework.time.Duration
@@ -93,8 +92,6 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
         loopExecutionStatTracker = Stats.trackTask("loop_execution:$name")
 
         if (analyzerPool.analyzers.isEmpty()) {
-            Log.w(Config.logTag, "No analyzers available for loop " +
-                    "${this::class.java.simpleName}. Unable to process images.")
             loopExecutionStatTracker.trackResult("canceled")
             onAnalyzerFailure(NoAnalyzersAvailableException)
             return
