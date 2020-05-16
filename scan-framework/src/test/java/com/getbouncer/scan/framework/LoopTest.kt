@@ -64,8 +64,6 @@ class LoopTest {
             yield()
         }
         assertEquals(dataCount, resultCount.get())
-
-        fail()
     }
 
     @Test(timeout = 1000)
