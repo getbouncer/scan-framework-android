@@ -28,7 +28,7 @@ class LayoutTest {
     @SmallTest
     fun maxAspectRatioInSize_tall() {
         // an aspect ratio that's taller than wide
-        assertEquals(Size(9, 16), maxAspectRatioInSize(Size(16, 16), 16.toFloat() / 9))
+        assertEquals(Size(9, 16), maxAspectRatioInSize(Size(16, 16), 9.toFloat() / 16))
     }
 
     @Test

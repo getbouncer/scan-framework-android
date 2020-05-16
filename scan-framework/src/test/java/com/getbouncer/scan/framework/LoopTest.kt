@@ -14,7 +14,7 @@ import org.junit.Test
 
 class LoopTest {
 
-    @Test(timeout = 2000)
+    @Test(timeout = 1000)
     @MediumTest
     fun processBoundAnalyzerLoop_analyzeData() {
         val dataCount = 3
@@ -64,7 +64,7 @@ class LoopTest {
         }
     }
 
-    @Test(timeout = 2000)
+    @Test(timeout = 1000)
     @MediumTest
     fun processBoundAnalyzerLoop_noAnalyzersAvailable() {
         var analyzerFailure = false
@@ -105,7 +105,7 @@ class LoopTest {
         }
     }
 
-    @Test(timeout = 2000)
+    @Test(timeout = 1000)
     @MediumTest
     fun finiteAnalyzerLoop_analyzeData() {
         val dataCount = 3
@@ -155,7 +155,7 @@ class LoopTest {
         }
     }
 
-    @Test(timeout = 2000)
+    @Test(timeout = 1000)
     @MediumTest
     fun finiteAnalyzerLoop_analyzeDataTimeout() {
         val dataCount = 10000
