@@ -63,6 +63,7 @@ class LoopTest {
         while (dataCount > resultCount.get()) {
             yield()
         }
+
         assertEquals(dataCount, resultCount.get())
     }
 
