@@ -25,3 +25,9 @@ jobs:
 
       - name: test
         run: ./gradlew scan-framework:test
+
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: test-report
+          path: scan-framework/build/reports/tests/testReleaseUnitTest/index.html
