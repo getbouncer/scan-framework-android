@@ -54,7 +54,7 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines_version"
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.20.0"
-    implementation "org.tensorflow:tensorflow-lite:1.15.0"
+    implementation "org.tensorflow:tensorflow-lite:2.2.0"
 }
 
 dependencies {
