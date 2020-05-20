@@ -7,8 +7,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.test.fail
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -27,9 +26,8 @@ class BouncerApiTest {
 
     @Test
     @LargeTest
-    @ExperimentalCoroutinesApi
-    fun validateApiKey() = runBlockingTest {
-        when (val result = com.getbouncer.scan.framework.api.validateApiKey()) {
+    fun validateApiKey() {
+        when (val result = runBlocking { com.getbouncer.scan.framework.api.validateApiKey() }) {
             is NetworkResult.Success -> {
                 assertTrue(result.body.isApiKeyValid)
                 assertNull(result.body.keyInvalidReason)
@@ -40,13 +38,14 @@ class BouncerApiTest {
 
     @Test
     @LargeTest
-    @ExperimentalCoroutinesApi
-    fun getModelSignedUrl() = runBlockingTest {
-        when (val result = getModelSignedUrl(
-            "fake_model",
-            "v0.0.1",
-            "model.tflite"
-        )) {
+    fun getModelSignedUrl() {
+        when (val result = runBlocking {
+            getModelSignedUrl(
+                "fake_model",
+                "v0.0.1",
+                "model.tflite"
+            )
+        }) {
             is NetworkResult.Success -> {
                 assertNotNull(result.body.modelUrl)
                 assertNotEquals("", result.body.modelUrl)
