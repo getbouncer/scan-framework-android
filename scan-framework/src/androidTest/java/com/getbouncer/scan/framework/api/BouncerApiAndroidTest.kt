@@ -17,8 +17,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.fail
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import org.junit.After
 import org.junit.Before
@@ -44,22 +43,21 @@ class BouncerApiAndroidTest {
 
     @Test
     @LargeTest
-    @ExperimentalCoroutinesApi
-    fun uploadScanStats_success() = runBlockingTest {
+    fun uploadScanStats() {
         for (i in 0..100) {
-            Stats.trackRepeatingTask("test_repeating_task_1").trackResult("$i")
+            runBlocking { Stats.trackRepeatingTask("test_repeating_task_1").trackResult("$i") }
         }
 
         for (i in 0..100) {
-            Stats.trackRepeatingTask("test_repeating_task_2").trackResult("$i")
+            runBlocking { Stats.trackRepeatingTask("test_repeating_task_2").trackResult("$i") }
         }
 
-        val task1 = Stats.trackTask("test_task_1")
+        val task1 = runBlocking { Stats.trackTask("test_task_1") }
         for (i in 0..5) {
-            task1.trackResult("$i")
+            runBlocking { task1.trackResult("$i") }
         }
 
-        when (val result = postForResult(
+        when (val result = runBlocking { postForResult(
             path = STATS_PATH,
             data = StatsPayload(
                 instanceId = "test_instance_id",
@@ -70,8 +68,8 @@ class BouncerApiAndroidTest {
             ),
             requestSerializer = StatsPayload.serializer(),
             responseSerializer = ScanStatsResults.serializer(),
-            errorSerializer = BouncerErrorResponse.serializer()
-        )) {
+            errorSerializer = BouncerErrorResponse.serializer())
+        }) {
             is NetworkResult.Success<ScanStatsResults, BouncerErrorResponse> -> {
                 assertEquals(200, result.responseCode)
             }
@@ -81,9 +79,8 @@ class BouncerApiAndroidTest {
 
     @Test
     @LargeTest
-    @ExperimentalCoroutinesApi
-    fun validateApiKey() = runBlockingTest {
-        when (val result = com.getbouncer.scan.framework.api.validateApiKey()) {
+    fun validateApiKey() {
+        when (val result = runBlocking { com.getbouncer.scan.framework.api.validateApiKey() }) {
             is NetworkResult.Success<ValidateApiKeyResponse, BouncerErrorResponse> -> {
                 assertEquals(200, result.responseCode)
             }
@@ -97,13 +94,14 @@ class BouncerApiAndroidTest {
      */
     @Test
     @LargeTest
-    @ExperimentalCoroutinesApi
-    fun getModelSignedUrl() = runBlockingTest {
-        when (val result = getModelSignedUrl(
-            "fake_model",
-            "v0.0.1",
-            "model.tflite"
-        )) {
+    fun getModelSignedUrl() {
+        when (val result = runBlocking {
+            getModelSignedUrl(
+                "fake_model",
+                "v0.0.1",
+                "model.tflite"
+            )
+        }) {
             is NetworkResult.Success<ModelSignedUrlResponse, BouncerErrorResponse> -> {
                 assertNotNull(result.body.modelUrl)
                 assertNotEquals("", result.body.modelUrl)

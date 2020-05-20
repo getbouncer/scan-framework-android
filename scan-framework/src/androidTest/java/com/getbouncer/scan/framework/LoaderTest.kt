@@ -10,8 +10,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -31,13 +30,12 @@ class LoaderTest {
 
     @Test
     @SmallTest
-    @ExperimentalCoroutinesApi
-    fun loadModelFromResource_correct() = runBlockingTest {
+    fun loadModelFromResource_correct() {
         class ResourceModelLoaderImpl(context: Context) : ResourceLoader(context) {
             override val resource: Int = R.drawable.ocr_card_numbers_clear
         }
 
-        val byteBuffer = ResourceModelLoaderImpl(testContext).loadData()
+        val byteBuffer = runBlocking { ResourceModelLoaderImpl(testContext).loadData() }
         assertNotNull(byteBuffer)
         assertEquals(335417, byteBuffer.limit(), "File is not expected size")
         byteBuffer.rewind()
@@ -59,8 +57,7 @@ class LoaderTest {
 
     @Test
     @SmallTest
-    @ExperimentalCoroutinesApi
-    fun loadModelFromWeb_correct() = runBlockingTest {
+    fun loadModelFromWeb_correct() {
         val localFileName = "test_loadModelFromWeb_correct"
         val localFile = File(testContext.cacheDir, localFileName)
         if (localFile.exists()) {
@@ -74,7 +71,7 @@ class LoaderTest {
             override val hash: String = "7c5a294ff9a1e665f07d3e64d898062e17a2348f01b0be75b2d5295988ce6a4c"
         }
 
-        val byteBuffer = ModelWebLoaderImpl(testContext).loadData()
+        val byteBuffer = runBlocking { ModelWebLoaderImpl(testContext).loadData() }
         assertNotNull(byteBuffer)
         assertEquals(9957868, byteBuffer.limit(), "File is not expected size")
         byteBuffer.rewind()
@@ -96,8 +93,7 @@ class LoaderTest {
 
     @Test
     @LargeTest
-    @ExperimentalCoroutinesApi
-    fun loadModelFromWeb_fail() = runBlockingTest {
+    fun loadModelFromWeb_fail() {
         val localFileName = "test_loadModelFromWeb_fail"
         val localFile = File(testContext.cacheDir, localFileName)
         if (localFile.exists()) {
@@ -111,13 +107,12 @@ class LoaderTest {
             override val hash: String = "b7331fd09bf479a20e01b77ebf1b5edbd312639edf8dd883aa7b86f4b7fbfa62"
         }
 
-        assertNull(ModelWebLoaderImpl(testContext).loadData())
+        assertNull(runBlocking { ModelWebLoaderImpl(testContext).loadData() })
     }
 
     @Test
     @LargeTest
-    @ExperimentalCoroutinesApi
-    fun loadModelFromWeb_signedUrlFail() = runBlockingTest {
+    fun loadModelFromWeb_signedUrlFail() {
         Config.apiKey = "__INTEGRATION_TEST_INVALID_KEY__"
         val localFileName = "test_loadModelFromWeb_fail"
         val localFile = File(testContext.cacheDir, localFileName)
@@ -132,6 +127,6 @@ class LoaderTest {
             override val hash: String = "7c5a294ff9a1e665f07d3e64d898062e17a2348f01b0be75b2d5295988ce6a4c"
         }
 
-        assertNull(ModelWebLoaderImpl(testContext).loadData())
+        assertNull(runBlocking { ModelWebLoaderImpl(testContext).loadData() })
     }
 }
