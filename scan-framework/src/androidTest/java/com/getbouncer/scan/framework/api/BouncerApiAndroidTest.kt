@@ -27,8 +27,6 @@ import org.junit.Test
 
 class BouncerApiAndroidTest {
 
-
-
     companion object {
         private const val STATS_PATH = "/scan_stats"
     }
