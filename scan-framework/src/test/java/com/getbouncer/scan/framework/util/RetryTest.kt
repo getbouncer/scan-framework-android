@@ -2,10 +2,10 @@ package com.getbouncer.scan.framework.util
 
 import androidx.test.filters.SmallTest
 import com.getbouncer.scan.framework.time.milliseconds
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.runBlockingTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Test
 
 class RetryTest {
