@@ -1,5 +1,16 @@
 package com.getbouncer.scan.framework.time
 
+import kotlin.math.round
+
+/**
+ * Round a number to a specified number of digits.
+ */
+private fun Float.roundTo(numberOfDigits: Int): Float {
+    var multiplier = 1.0F
+    repeat(numberOfDigits) { multiplier *= 10 }
+    return round(this * multiplier) / multiplier
+}
+
 /**
  * Since kotlin time is still experimental, implement our own version for utility.
  */
@@ -10,6 +21,18 @@ sealed class Duration : Comparable<Duration> {
         val INFINITE: Duration = DurationInfinitePositive
         val NEGATIVE_INFINITE: Duration = DurationInfiniteNegative
     }
+
+    abstract val inYears: Float
+
+    abstract val inMonths: Float
+
+    abstract val inWeeks: Float
+
+    abstract val inDays: Float
+
+    abstract val inHours: Float
+
+    abstract val inMinutes: Float
 
     abstract val inSeconds: Float
 
@@ -26,8 +49,17 @@ sealed class Duration : Comparable<Duration> {
 
     override fun hashCode(): Int = inNanoseconds.toInt()
 
-    override fun toString(): String {
-        return "Duration($inNanoseconds nanoseconds)"
+    override fun toString(): String = when {
+        inYears > 1 -> "${inYears.roundTo(2)} years"
+        inMonths > 1 -> "${inMonths.roundTo(2)} months"
+        inWeeks > 1 -> "${inWeeks.roundTo(2)} weeks"
+        inDays > 1 -> "${inDays.roundTo(2)} days"
+        inHours > 1 -> "${inHours.roundTo(2)} hours"
+        inMinutes > 1 -> "${inMinutes.roundTo(2)} minutes"
+        inSeconds > 1 -> "${inSeconds.roundTo(2)} seconds"
+        inMilliseconds > 1 -> "${inMilliseconds.roundTo(2)} milliseconds"
+        inMicroseconds > 1 -> "${inMicroseconds.roundTo(2)} microseconds"
+        else -> "$inNanoseconds nanoseconds"
     }
 
     open operator fun plus(other: Duration): Duration = DurationNanoseconds(inNanoseconds + other.inNanoseconds)
@@ -46,19 +78,31 @@ private abstract class DurationInfinite : Duration() {
 }
 
 private object DurationInfinitePositive : DurationInfinite() {
+    override val inYears: Float = Float.POSITIVE_INFINITY
+    override val inMonths: Float = Float.POSITIVE_INFINITY
+    override val inWeeks: Float = Float.POSITIVE_INFINITY
+    override val inDays: Float = Float.POSITIVE_INFINITY
+    override val inHours: Float = Float.POSITIVE_INFINITY
+    override val inMinutes: Float = Float.POSITIVE_INFINITY
     override val inSeconds: Float = Float.POSITIVE_INFINITY
     override val inMilliseconds: Float = Float.POSITIVE_INFINITY
     override val inMicroseconds: Float = Float.POSITIVE_INFINITY
     override val inNanoseconds: Long = Long.MAX_VALUE
 
     override fun toString(): String {
-        return "Duration(INFINITE)"
+        return "INFINITE"
     }
 
     override operator fun unaryMinus(): Duration = DurationInfiniteNegative
 }
 
 private object DurationInfiniteNegative : DurationInfinite() {
+    override val inYears: Float = Float.NEGATIVE_INFINITY
+    override val inMonths: Float = Float.NEGATIVE_INFINITY
+    override val inWeeks: Float = Float.NEGATIVE_INFINITY
+    override val inDays: Float = Float.NEGATIVE_INFINITY
+    override val inHours: Float = Float.NEGATIVE_INFINITY
+    override val inMinutes: Float = Float.NEGATIVE_INFINITY
     override val inSeconds: Float = Float.NEGATIVE_INFINITY
     override val inMilliseconds: Float = Float.NEGATIVE_INFINITY
     override val inMicroseconds: Float = Float.NEGATIVE_INFINITY
@@ -72,6 +116,12 @@ private object DurationInfiniteNegative : DurationInfinite() {
 }
 
 private class DurationNanoseconds(private val nanoseconds: Long) : Duration() {
+    override val inYears get(): Float = inDays / 365
+    override val inMonths get(): Float = inDays / 30
+    override val inWeeks get(): Float = inDays / 7
+    override val inDays get(): Float = inHours / 24
+    override val inHours get(): Float = inMinutes / 60
+    override val inMinutes get(): Float = inSeconds / 60
     override val inSeconds get(): Float = inMilliseconds / 1000
     override val inMilliseconds get(): Float = inMicroseconds / 1000
     override val inMicroseconds get(): Float = inNanoseconds.toFloat() / 1000
