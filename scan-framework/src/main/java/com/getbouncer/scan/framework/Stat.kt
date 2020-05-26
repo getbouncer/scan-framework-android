@@ -62,7 +62,11 @@ object Stats {
                     tasks[name] = list + TaskStats(startedAt, startedAt.elapsedSince(), result)
                 }
             }
-            Log.v(Config.logTag, "Task $name got result $result after ${startedAt.elapsedSince()}")
+            try {
+                Log.v(Config.logTag, "Task $name got result $result after ${startedAt.elapsedSince()}")
+            } catch (t: Throwable) {
+                // ignore
+            }
         }
 
     /**
@@ -119,7 +123,11 @@ object Stats {
                     )
                 }
             }
-            Log.v(Config.logTag, "Repeating task $name got result $result after ${startedAt.elapsedSince()}")
+            try {
+                Log.v(Config.logTag, "Repeating task $name got result $result after ${startedAt.elapsedSince()}")
+            } catch (t: Throwable) {
+                // ignore
+            }
         }
 
     /**
