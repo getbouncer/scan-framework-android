@@ -116,16 +116,16 @@ private object DurationInfiniteNegative : DurationInfinite() {
 }
 
 private class DurationNanoseconds(private val nanoseconds: Long) : Duration() {
-    override val inYears get(): Float = inDays / 365
-    override val inMonths get(): Float = inDays / 30
-    override val inWeeks get(): Float = inDays / 7
-    override val inDays get(): Float = inHours / 24
-    override val inHours get(): Float = inMinutes / 60
-    override val inMinutes get(): Float = inSeconds / 60
-    override val inSeconds get(): Float = inMilliseconds / 1000
-    override val inMilliseconds get(): Float = inMicroseconds / 1000
-    override val inMicroseconds get(): Float = inNanoseconds.toFloat() / 1000
-    override val inNanoseconds get(): Long = nanoseconds
+    override val inYears by lazy { inDays / 365 }
+    override val inMonths by lazy { inDays / 30 }
+    override val inWeeks by lazy { inDays / 7 }
+    override val inDays by lazy { inHours / 24 }
+    override val inHours by lazy { inMinutes / 60 }
+    override val inMinutes by lazy { inSeconds / 60 }
+    override val inSeconds by lazy { inMilliseconds / 1000 }
+    override val inMilliseconds by lazy { inMicroseconds / 1000 }
+    override val inMicroseconds by lazy { inNanoseconds.toFloat() / 1000 }
+    override val inNanoseconds = nanoseconds
 
     companion object {
         fun fromSeconds(seconds: Double) = fromMilliseconds(seconds * 1000)
