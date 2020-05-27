@@ -414,7 +414,6 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
     /**
      * Determine if the timeout from the config has been reached
      */
-    private fun hasReachedTimeout(): Boolean {
-        return firstResultTime?.elapsedSince() ?: Duration.NEGATIVE_INFINITE > config.maxTotalAggregationTime
-    }
+    private fun hasReachedTimeout(): Boolean =
+        firstResultTime?.elapsedSince() ?: Duration.NEGATIVE_INFINITE > config.maxTotalAggregationTime
 }

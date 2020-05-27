@@ -25,7 +25,7 @@ class ClockMark internal constructor() {
     }
 
     override fun toString(): String {
-        return "ClockMark($originMark)"
+        return "ClockMark(${elapsedSince()} ago)"
     }
 }
 
