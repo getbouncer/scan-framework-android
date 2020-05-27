@@ -99,13 +99,14 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
             return
         }
 
-        processingCoroutineScope.launch { supervisorScope {
+        processingCoroutineScope.launch {
+            val workerScope = this
             analyzerPool.analyzers.forEachIndexed { index, analyzer ->
                 launch(Dispatchers.Default) {
-                    startWorker(this@supervisorScope, index, analyzer)
+                    startWorker(workerScope, index, analyzer)
                 }
             }
-        } }
+        }
     }
 
     /**
