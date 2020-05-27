@@ -7,10 +7,9 @@ import com.getbouncer.scan.framework.time.measureTime
 import com.getbouncer.scan.framework.time.milliseconds
 import com.getbouncer.scan.framework.time.min
 import com.getbouncer.scan.framework.time.seconds
-import java.lang.Exception
+import java.util.LinkedList
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.LinkedList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -65,7 +64,7 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
     )
 
     private val analyzerExecutionDurations = LinkedList<Duration>()
-    internal var averageAnalyzerExecutionDuration = 50.milliseconds
+    protected var averageAnalyzerExecutionDuration = 50.milliseconds
         private set
 
     internal abstract val name: String
