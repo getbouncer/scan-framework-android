@@ -74,7 +74,9 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
 
     abstract fun calculateChannelBufferSize(): Int
 
-    open suspend fun processFrame(frame: DataFrame) = if (shouldReceiveNewFrame(state)) { channel.offer(frame) } else false
+    open suspend fun processFrame(frame: DataFrame) = if (shouldReceiveNewFrame(state)) {
+        channel.offer(frame)
+    } else false
 
     abstract suspend fun shouldReceiveNewFrame(state: LoopState<State>): Boolean
 
@@ -198,20 +200,25 @@ class ProcessBoundAnalyzerLoop<DataFrame, State, Output>(
     private val shouldReceivedFrameMutex = Mutex()
     private var lastFrameReceivedAt: ClockMark? = null
 
+    /**
+     * Determine if a new frame should be processed. This method will stagger frames based on the amount of time the
+     * analyzers take to execute. Staggering the frames evens out the rate at which they are processed.
+     */
     override suspend fun shouldReceiveNewFrame(state: LoopState<State>): Boolean =
         shouldReceivedFrameMutex.withLock {
-            val lastFrameReceivedAt = this.lastFrameReceivedAt
+            val running = state.startedAt != null && !state.finished
+            val analyzerDelay =  min(analyzerExecutionTime, MAX_ANALYZER_DELAY) / analyzerPool.desiredAnalyzerCount
             val shouldReceiveNewFrame =
-                state.startedAt != null &&
-                        !state.finished &&
-                        (lastFrameReceivedAt == null ||
-                                lastFrameReceivedAt.elapsedSince() > min(analyzerExecutionTime, MAX_ANALYZER_DELAY) / analyzerPool.desiredAnalyzerCount)
+                    running && lastFrameReceivedAt?.elapsedSince() ?: Duration.INFINITE > analyzerDelay
             if (shouldReceiveNewFrame) {
                 this.lastFrameReceivedAt = Clock.markNow()
             }
             shouldReceiveNewFrame
         }
 
+    /**
+     * Do not queue frames since we want to process them as immediately as possible.
+     */
     override fun calculateChannelBufferSize(): Int = Channel.RENDEZVOUS
 
     override suspend fun onResult(
