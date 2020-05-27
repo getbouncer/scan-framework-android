@@ -16,7 +16,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -74,7 +73,9 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
 
     abstract fun calculateChannelBufferSize(): Int
 
-    open suspend fun processFrame(frame: DataFrame) = if (shouldReceiveNewFrame(state)) { channel.offer(frame) } else false
+    open suspend fun processFrame(frame: DataFrame) = if (shouldReceiveNewFrame(state)) {
+        channel.offer(frame)
+    } else false
 
     abstract suspend fun shouldReceiveNewFrame(state: LoopState<State>): Boolean
 
@@ -97,18 +98,21 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
             return
         }
 
-        processingCoroutineScope.launch(Dispatchers.Default) { supervisorScope {
-            analyzerPool.analyzers.forEachIndexed { index, analyzer -> launch {
-                startWorker(this@supervisorScope, index, analyzer)
-            } }
-        } }
+        processingCoroutineScope.launch {
+            val workerScope = this
+            analyzerPool.analyzers.forEachIndexed { index, analyzer ->
+                launch(Dispatchers.Default) {
+                    startWorker(workerScope, index, analyzer)
+                }
+            }
+        }
     }
 
     /**
      * Launch a worker coroutine that has access to the analyzer's `analyze` method and the result handler
      */
     private suspend fun startWorker(
-        supervisorScope: CoroutineScope,
+        workerScope: CoroutineScope,
         workerId: Int,
         analyzer: Analyzer<DataFrame, State, Output>
     ) {
@@ -118,24 +122,22 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
                 try {
                     val analyzerResult = analyzer.analyze(frame, state.state)
 
-                    supervisorScope.launch {
-                        try {
-                            onResult(analyzerResult, state, frame, updateState)
-                        } catch (t: Throwable) {
-                            stat.trackResult("result_failure")
-                            handleResultFailure(this, t)
-                        }
+                    try {
+                        onResult(analyzerResult, state, frame, updateState)
+                    } catch (t: Throwable) {
+                        stat.trackResult("result_failure")
+                        handleResultFailure(workerScope, t)
                     }
                 } catch (t: Throwable) {
                     stat.trackResult("analyzer_failure")
-                    handleAnalyzerFailure(supervisorScope, t)
+                    handleAnalyzerFailure(workerScope, t)
                 }
             }
 
             cancelMutex.withLock {
-                if (state.finished && supervisorScope.isActive) {
+                if (state.finished && workerScope.isActive) {
                     loopExecutionStatTracker.trackResult("success:$workerId")
-                    supervisorScope.cancel()
+                    workerScope.cancel()
                 }
             }
 
@@ -143,21 +145,21 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
         }
     }
 
-    private suspend fun handleAnalyzerFailure(supervisorScope: CoroutineScope, t: Throwable) {
+    private suspend fun handleAnalyzerFailure(workerScope: CoroutineScope, t: Throwable) {
         if (withContext(Dispatchers.Main) { onAnalyzerFailure(t) }) {
             cancelMutex.withLock {
-                if (supervisorScope.isActive) {
-                    supervisorScope.cancel()
+                if (workerScope.isActive) {
+                    workerScope.cancel()
                 }
             }
         }
     }
 
-    private suspend fun handleResultFailure(supervisorScope: CoroutineScope, t: Throwable) {
+    private suspend fun handleResultFailure(workerScope: CoroutineScope, t: Throwable) {
         if (withContext(Dispatchers.Main) { onResultFailure(t) }) {
             cancelMutex.withLock {
-                if (supervisorScope.isActive) {
-                    supervisorScope.cancel()
+                if (workerScope.isActive) {
+                    workerScope.cancel()
                 }
             }
         }
@@ -198,20 +200,25 @@ class ProcessBoundAnalyzerLoop<DataFrame, State, Output>(
     private val shouldReceivedFrameMutex = Mutex()
     private var lastFrameReceivedAt: ClockMark? = null
 
+    /**
+     * Determine if a new frame should be processed. This method will stagger frames based on the amount of time the
+     * analyzers take to execute. Staggering the frames evens out the rate at which they are processed.
+     */
     override suspend fun shouldReceiveNewFrame(state: LoopState<State>): Boolean =
         shouldReceivedFrameMutex.withLock {
-            val lastFrameReceivedAt = this.lastFrameReceivedAt
+            val running = state.startedAt != null && !state.finished
+            val analyzerDelay = min(analyzerExecutionTime, MAX_ANALYZER_DELAY) / analyzerPool.desiredAnalyzerCount
             val shouldReceiveNewFrame =
-                state.startedAt != null &&
-                        !state.finished &&
-                        (lastFrameReceivedAt == null ||
-                                lastFrameReceivedAt.elapsedSince() > min(analyzerExecutionTime, MAX_ANALYZER_DELAY) / analyzerPool.desiredAnalyzerCount)
+                    running && lastFrameReceivedAt?.elapsedSince() ?: Duration.INFINITE > analyzerDelay
             if (shouldReceiveNewFrame) {
                 this.lastFrameReceivedAt = Clock.markNow()
             }
             shouldReceiveNewFrame
         }
 
+    /**
+     * Do not queue frames since we want to process them as immediately as possible.
+     */
     override fun calculateChannelBufferSize(): Int = Channel.RENDEZVOUS
 
     override suspend fun onResult(

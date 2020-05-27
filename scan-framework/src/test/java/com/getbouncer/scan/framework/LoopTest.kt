@@ -198,7 +198,7 @@ class LoopTest {
             timeLimit = 1.nanoseconds
         )
 
-        loop.start(GlobalScope)
+        loop.start(this)
 
         while (!terminatedEarly) {
             yield()
