@@ -97,18 +97,20 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
             return
         }
 
-        processingCoroutineScope.launch(Dispatchers.Default) { supervisorScope {
-            analyzerPool.analyzers.forEachIndexed { index, analyzer -> launch {
-                startWorker(this@supervisorScope, index, analyzer)
-            } }
-        } }
+        supervisorScope {
+            analyzerPool.analyzers.forEachIndexed { index, analyzer ->
+                processingCoroutineScope.launch(Dispatchers.Default) {
+                    startWorker(this@supervisorScope, index, analyzer)
+                }
+            }
+        }
     }
 
     /**
      * Launch a worker coroutine that has access to the analyzer's `analyze` method and the result handler
      */
     private suspend fun startWorker(
-        supervisorScope: CoroutineScope,
+        workerScope: CoroutineScope,
         workerId: Int,
         analyzer: Analyzer<DataFrame, State, Output>
     ) {
@@ -118,24 +120,22 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
                 try {
                     val analyzerResult = analyzer.analyze(frame, state.state)
 
-                    supervisorScope.launch {
-                        try {
-                            onResult(analyzerResult, state, frame, updateState)
-                        } catch (t: Throwable) {
-                            stat.trackResult("result_failure")
-                            handleResultFailure(this, t)
-                        }
+                    try {
+                        onResult(analyzerResult, state, frame, updateState)
+                    } catch (t: Throwable) {
+                        stat.trackResult("result_failure")
+                        handleResultFailure(workerScope, t)
                     }
                 } catch (t: Throwable) {
                     stat.trackResult("analyzer_failure")
-                    handleAnalyzerFailure(supervisorScope, t)
+                    handleAnalyzerFailure(workerScope, t)
                 }
             }
 
             cancelMutex.withLock {
-                if (state.finished && supervisorScope.isActive) {
+                if (state.finished && workerScope.isActive) {
                     loopExecutionStatTracker.trackResult("success:$workerId")
-                    supervisorScope.cancel()
+                    workerScope.cancel()
                 }
             }
 
@@ -143,21 +143,21 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
         }
     }
 
-    private suspend fun handleAnalyzerFailure(supervisorScope: CoroutineScope, t: Throwable) {
+    private suspend fun handleAnalyzerFailure(workerScope: CoroutineScope, t: Throwable) {
         if (withContext(Dispatchers.Main) { onAnalyzerFailure(t) }) {
             cancelMutex.withLock {
-                if (supervisorScope.isActive) {
-                    supervisorScope.cancel()
+                if (workerScope.isActive) {
+                    workerScope.cancel()
                 }
             }
         }
     }
 
-    private suspend fun handleResultFailure(supervisorScope: CoroutineScope, t: Throwable) {
+    private suspend fun handleResultFailure(workerScope: CoroutineScope, t: Throwable) {
         if (withContext(Dispatchers.Main) { onResultFailure(t) }) {
             cancelMutex.withLock {
-                if (supervisorScope.isActive) {
-                    supervisorScope.cancel()
+                if (workerScope.isActive) {
+                    workerScope.cancel()
                 }
             }
         }
