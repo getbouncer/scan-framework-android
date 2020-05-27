@@ -6,6 +6,7 @@ import com.getbouncer.scan.framework.time.Duration
 import com.getbouncer.scan.framework.time.measureTime
 import com.getbouncer.scan.framework.time.milliseconds
 import com.getbouncer.scan.framework.time.min
+import com.getbouncer.scan.framework.time.nanoseconds
 import com.getbouncer.scan.framework.time.seconds
 import java.lang.Exception
 import java.util.concurrent.atomic.AtomicBoolean
@@ -19,6 +20,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.util.LinkedList
 
 private val MAX_ANALYZER_DELAY = 1.seconds
 
@@ -31,9 +33,8 @@ data class LoopState<State>(
 object NoAnalyzersAvailableException : Exception()
 
 /**
- * A loop to execute repeated analysis. The loop uses coroutines to run the [Analyzer.analyze]
- * method. If the [Analyzer] is threadsafe, multiple coroutines will be used. If not, a single
- * coroutine will be used.
+ * A loop to execute repeated analysis. The loop uses coroutines to run the [Analyzer.analyze] method. If the [Analyzer]
+ * is threadsafe, multiple coroutines will be used. If not, a single coroutine will be used.
  *
  * Any data enqueued while the analyzers are at capacity will be dropped.
  *
@@ -64,7 +65,8 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
         state = initialState
     )
 
-    internal var analyzerExecutionTime = 50.milliseconds
+    private val analyzerExecutionDurations = LinkedList<Duration>()
+    internal var averageAnalyzerExecutionDuration = 50.milliseconds
         private set
 
     internal abstract val name: String
@@ -73,9 +75,7 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
 
     abstract fun calculateChannelBufferSize(): Int
 
-    open suspend fun processFrame(frame: DataFrame) = if (shouldReceiveNewFrame(state)) {
-        channel.offer(frame)
-    } else false
+    open suspend fun processFrame(frame: DataFrame) = if (shouldReceiveNewFrame(state)) channel.offer(frame) else false
 
     abstract suspend fun shouldReceiveNewFrame(state: LoopState<State>): Boolean
 
@@ -118,7 +118,7 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
     ) {
         for (frame in channel) {
             val stat = Stats.trackRepeatingTask("analyzer_execution:$name:${analyzer.name}")
-            analyzerExecutionTime = measureTime {
+            updateAnalyzerExecutionDuration(measureTime {
                 try {
                     val analyzerResult = analyzer.analyze(frame, state.state)
 
@@ -132,7 +132,7 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
                     stat.trackResult("analyzer_failure")
                     handleAnalyzerFailure(workerScope, t)
                 }
-            }
+            })
 
             cancelMutex.withLock {
                 if (state.finished && workerScope.isActive) {
@@ -143,6 +143,16 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
 
             stat.trackResult("success")
         }
+    }
+
+    private fun updateAnalyzerExecutionDuration(newDuration: Duration) {
+        analyzerExecutionDurations.add(newDuration)
+        if (analyzerExecutionDurations.size > analyzerPool.analyzers.size) {
+            analyzerExecutionDurations.removeFirst()
+        }
+
+        averageAnalyzerExecutionDuration =
+                analyzerExecutionDurations.reduce { one, two -> one + two } / analyzerExecutionDurations.size
     }
 
     private suspend fun handleAnalyzerFailure(workerScope: CoroutineScope, t: Throwable) {
@@ -207,7 +217,7 @@ class ProcessBoundAnalyzerLoop<DataFrame, State, Output>(
     override suspend fun shouldReceiveNewFrame(state: LoopState<State>): Boolean =
         shouldReceivedFrameMutex.withLock {
             val running = state.startedAt != null && !state.finished
-            val analyzerDelay = min(analyzerExecutionTime, MAX_ANALYZER_DELAY) / analyzerPool.desiredAnalyzerCount
+            val analyzerDelay = min(averageAnalyzerExecutionDuration, MAX_ANALYZER_DELAY) / analyzerPool.desiredAnalyzerCount
             val shouldReceiveNewFrame =
                     running && lastFrameReceivedAt?.elapsedSince() ?: Duration.INFINITE > analyzerDelay
             if (shouldReceiveNewFrame) {

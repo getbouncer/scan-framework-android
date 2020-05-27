@@ -1,7 +1,6 @@
 package com.getbouncer.scan.framework
 
 import android.util.Log
-import com.getbouncer.scan.framework.time.AtomicClockMark
 import com.getbouncer.scan.framework.time.Clock
 import com.getbouncer.scan.framework.time.ClockMark
 import com.getbouncer.scan.framework.time.Duration
@@ -19,16 +18,15 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
- * A specialized result handler for loops. This handler can update the state of the loop, including
- * asking for termination.
+ * A specialized result handler for loops. This handler can update the state of the loop, including asking for
+ * termination.
  */
 interface StateUpdatingResultHandler<Input, State, Output> {
     suspend fun onResult(result: Output, state: State, data: Input, updateState: (State) -> Unit)
 }
 
 /**
- * A result handler for data processing. This is called when results are available from an
- * [Analyzer].
+ * A result handler for data processing. This is called when results are available from an [Analyzer].
  */
 interface ResultHandler<Input, State, Output> {
     suspend fun onResult(result: Output, state: State, data: Input)
@@ -50,8 +48,8 @@ interface AggregateResultListener<DataFrame, State, InterimResult, FinalResult> 
     suspend fun onResult(result: FinalResult, frames: Map<String, List<SavedFrame<DataFrame, State, InterimResult>>>)
 
     /**
-     * An interim result is available, but the [AnalyzerLoop] is still processing more data frames.
-     * This is useful for displaying a debug window.
+     * An interim result is available, but the [AnalyzerLoop] is still processing more data frames. This is useful for
+     * displaying a debug window or handling state updates during a scan.
      *
      * @param result: the result from the [AnalyzerLoop]
      * @param state: the shared [State] that produced this result
@@ -163,8 +161,8 @@ data class ResultAggregatorConfig internal constructor(
 }
 
 /**
- * The result aggregator processes results from an analyzer until a condition specified in the
- * configuration is met, either total aggregation time elapses or required agreement count is met.
+ * The result aggregator processes results from an analyzer until a condition specified in the configuration is met,
+ * either total aggregation time elapses or required agreement count is met.
  */
 abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult, FinalResult>(
     private val config: ResultAggregatorConfig,
@@ -172,8 +170,8 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
     private val name: String
 ) : StateUpdatingResultHandler<DataFrame, LoopState<State>, AnalyzerResult> {
 
-    private val firstResultTime = AtomicClockMark()
-    private val firstFrameTime = AtomicClockMark()
+    private var firstResultTime: ClockMark? = null
+    private var firstFrameTime: ClockMark? = null
     private var lastNotifyTime: ClockMark = Clock.markNow()
     private val totalFramesProcessed: AtomicLong = AtomicLong(0)
     private val framesProcessedSinceLastUpdate: AtomicLong = AtomicLong(0)
@@ -193,15 +191,15 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
     private val resultMutex = Mutex()
 
     /**
-     * Reset the state of the aggregator and pause aggregation. This is useful for aggregating data
-     * that can become invalid, such as when a user is scanning an object, and moves the object away
-     * from the camera before the scan has completed.
+     * Reset the state of the aggregator and pause aggregation. This is useful for aggregators that can be backgrounded.
+     * For example, a user that is scanning an object, but then backgrounds the scanning app. In the case that the scan
+     * should be restarted, this feature pauses the result handlers and resets the state.
      */
     open fun resetAndPause() {
         isPaused = true
 
-        firstResultTime.clear()
-        firstFrameTime.clear()
+        firstResultTime = null
+        firstFrameTime = null
         totalFramesProcessed.set(0)
         framesProcessedSinceLastUpdate.set(0)
         haveSeenValidResult.set(false)
@@ -217,11 +215,12 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
     }
 
     /**
-     * Reset the state of the aggregator
+     * Reset the state of the aggregator. This is useful for aggregating data that can become invalid, such as when a
+     * user is scanning an object, and moves the object away from the camera before the scan has completed.
      */
     protected suspend fun reset() {
-        firstResultTime.clear()
-        firstFrameTime.clear()
+        firstResultTime = null
+        firstFrameTime = null
         haveSeenValidResult.set(false)
 
         saveFrameMutex.withLock {
@@ -243,6 +242,10 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
         }
 
         withContext(Dispatchers.Default) {
+            if (firstResultTime == null) {
+                firstResultTime = Clock.markNow()
+            }
+
             if (config.trackFrameRate) {
                 trackAndNotifyOfFrameRate()
             }
@@ -274,12 +277,12 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
     }
 
     /**
-     * Determine how frames should be classified using [getSaveFrameIdentifier], and then store them
-     * in a map of frames based on that identifier.
+     * Determine how frames should be classified using [getSaveFrameIdentifier], and then store them in a map of frames
+     * based on that identifier.
      *
-     * This method keeps track of the total number of saved frames and the total size of saved
-     * frames. If the total number or total size exceeds the maximum allowed in the aggregator
-     * configuration, the oldest frames will be dropped.
+     * This method keeps track of the total number of saved frames and the total size of saved frames. If the total
+     * number or total size exceeds the maximum allowed in the aggregator configuration, the oldest frames will be
+     * dropped.
      */
     private suspend fun saveFrames(result: InterimResult, state: State, data: DataFrame) {
         val savedFrameType = getSaveFrameIdentifier(result, data) ?: return
@@ -313,8 +316,8 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
     }
 
     /**
-     * Aggregate a new result. Note that the [result] may be invalid. If this method returns a
-     * non-null [AnalyzerResult], the aggregator will stop listening for new results.
+     * Aggregate a new result. Note that the [result] may be invalid. If this method returns a non-null
+     * [AnalyzerResult], the aggregator will stop listening for new results.
      *
      * @param result: The result to aggregate
      * @param state: The loop state
@@ -329,8 +332,7 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
     ): Pair<InterimResult, FinalResult?>
 
     /**
-     * Determine if a data frame should be saved for future processing. Note that [result] may be
-     * invalid.
+     * Determine if a data frame should be saved for future processing. Note that [result] may be invalid.
      *
      * If this method returns a non-null string, the frame will be saved under that identifier.
      */
@@ -359,10 +361,10 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
         }
 
         if (shouldNotifyOfFrameRate) {
-            val isFirstFrame = this.firstFrameTime.setFirstTime(Clock.markNow())
-            val firstFrameTime = this.firstFrameTime.get()
+            val firstFrameTime = this.firstFrameTime
+            this.firstFrameTime = Clock.markNow()
 
-            if (!isFirstFrame && firstFrameTime != null) {
+            if (firstFrameTime != null) {
                 val totalFrameRate = Rate(totalFrames, firstFrameTime.elapsedSince())
                 val instantFrameRate = Rate(framesSinceLastUpdate, lastNotifyTime.elapsedSince())
 
@@ -413,8 +415,6 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
      * Determine if the timeout from the config has been reached
      */
     private fun hasReachedTimeout(): Boolean {
-        val firstResultTime = this.firstResultTime.get()
-        return firstResultTime != null &&
-                firstResultTime.elapsedSince() > config.maxTotalAggregationTime
+        return firstResultTime?.elapsedSince() ?: Duration.NEGATIVE_INFINITE > config.maxTotalAggregationTime
     }
 }
