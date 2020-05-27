@@ -6,11 +6,11 @@ import com.getbouncer.scan.framework.time.Duration
 import com.getbouncer.scan.framework.time.measureTime
 import com.getbouncer.scan.framework.time.milliseconds
 import com.getbouncer.scan.framework.time.min
-import com.getbouncer.scan.framework.time.nanoseconds
 import com.getbouncer.scan.framework.time.seconds
 import java.lang.Exception
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.LinkedList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -20,7 +20,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.util.LinkedList
 
 private val MAX_ANALYZER_DELAY = 1.seconds
 
