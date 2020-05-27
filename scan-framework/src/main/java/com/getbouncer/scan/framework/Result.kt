@@ -242,10 +242,6 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
         }
 
         withContext(Dispatchers.Default) {
-            if (firstResultTime == null) {
-                firstResultTime = Clock.markNow()
-            }
-
             if (config.trackFrameRate) {
                 trackAndNotifyOfFrameRate()
             }
@@ -253,6 +249,11 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
             val resultPair = aggregateResult(
                 result = result,
                 state = state.state,
+                startAggregationTimer = {
+                    if (firstResultTime == null) {
+                        firstResultTime = Clock.markNow()
+                    }
+                },
                 mustReturnFinal = hasReachedTimeout(),
                 updateState = { updateState(state.copy(state = it)) }
             )
@@ -321,12 +322,14 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
      *
      * @param result: The result to aggregate
      * @param state: The loop state
+     * @param startAggregationTimer: When called, the maximum aggregation timer starts.
      * @param mustReturnFinal: If true, this method must return a final result
      * @param updateState: A function to use to update the state
      */
     abstract suspend fun aggregateResult(
         result: AnalyzerResult,
         state: State,
+        startAggregationTimer: () -> Unit,
         mustReturnFinal: Boolean,
         updateState: (State) -> Unit
     ): Pair<InterimResult, FinalResult?>
