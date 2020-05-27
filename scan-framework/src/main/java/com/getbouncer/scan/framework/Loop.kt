@@ -207,7 +207,7 @@ class ProcessBoundAnalyzerLoop<DataFrame, State, Output>(
     override suspend fun shouldReceiveNewFrame(state: LoopState<State>): Boolean =
         shouldReceivedFrameMutex.withLock {
             val running = state.startedAt != null && !state.finished
-            val analyzerDelay =  min(analyzerExecutionTime, MAX_ANALYZER_DELAY) / analyzerPool.desiredAnalyzerCount
+            val analyzerDelay = min(analyzerExecutionTime, MAX_ANALYZER_DELAY) / analyzerPool.desiredAnalyzerCount
             val shouldReceiveNewFrame =
                     running && lastFrameReceivedAt?.elapsedSince() ?: Duration.INFINITE > analyzerDelay
             if (shouldReceiveNewFrame) {
