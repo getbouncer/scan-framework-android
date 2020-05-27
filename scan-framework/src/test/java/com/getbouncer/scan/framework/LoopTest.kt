@@ -197,7 +197,7 @@ class LoopTest {
             frames = (0 until dataCount).map { 2 },
             timeLimit = 1.nanoseconds
         )
-        
+
         loop.start(this)
 
         while (!terminatedEarly) {
