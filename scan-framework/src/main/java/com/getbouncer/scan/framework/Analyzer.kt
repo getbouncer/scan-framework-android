@@ -39,7 +39,7 @@ class AnalyzerPool<DataFrame, State, Output> private constructor(
     ) {
         suspend fun buildAnalyzerPool() = AnalyzerPool(
             desiredAnalyzerCount,
-            (0 until desiredAnalyzerCount).mapNotNull { analyzerFactory.newInstance() }
+            (0 until if (analyzerFactory.isThreadSafe) desiredAnalyzerCount else 1).mapNotNull { analyzerFactory.newInstance() }
         )
     }
 }

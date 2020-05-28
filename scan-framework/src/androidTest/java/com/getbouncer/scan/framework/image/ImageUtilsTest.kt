@@ -8,6 +8,7 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.util.Size
 import androidx.core.graphics.drawable.toBitmap
+import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
 import com.getbouncer.scan.framework.test.R
 import java.nio.ByteBuffer
@@ -21,6 +22,7 @@ class ImageUtilsTest {
     private val testResources = InstrumentationRegistry.getInstrumentation().context.resources
 
     @Test
+    @SmallTest
     fun bitmap_toRGBByteBuffer_fromPhoto_isCorrect() {
         val bitmap = testResources.getDrawable(R.drawable.ocr_card_numbers_clear, null).toBitmap()
         assertNotNull(bitmap)
@@ -53,6 +55,7 @@ class ImageUtilsTest {
     }
 
     @Test
+    @SmallTest
     fun bitmap_toRGBByteBuffer_generated_isCorrect() {
         val bitmap = generateSampleBitmap()
         assertNotNull(bitmap)
@@ -85,6 +88,7 @@ class ImageUtilsTest {
     }
 
     @Test
+    @SmallTest
     fun bitmap_scale_isCorrect() {
         // read in a sample bitmap file
         val bitmap = testResources.getDrawable(R.drawable.ocr_card_numbers_clear, null).toBitmap()
@@ -114,6 +118,7 @@ class ImageUtilsTest {
     }
 
     @Test
+    @SmallTest
     fun bitmap_crop_isCorrect() {
         val bitmap = testResources.getDrawable(R.drawable.ocr_card_numbers_clear, null).toBitmap()
         assertNotNull(bitmap)
@@ -150,6 +155,7 @@ class ImageUtilsTest {
     }
 
     @Test
+    @SmallTest
     fun bitmap_toPngByteArray_isCorrect() {
         val bitmap = testResources.getDrawable(R.drawable.ocr_card_numbers_clear, null).toBitmap()
         assertNotNull(bitmap)
