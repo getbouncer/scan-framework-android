@@ -278,7 +278,7 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, FinalResult>(
 
             val hasSavedEnoughFrames = saveFrames(result, state.state, data)
 
-            if (validResult) {
+            if (validResult || isValidInterimResult(result)) {
                 launch { listener.onInterimResult(
                     result = result,
                     state = state.state,
@@ -458,9 +458,11 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, FinalResult>(
     /**
      * Determine if the timeout from the config has been reached
      */
-    private fun hasReachedTimeout(): Boolean {
+    fun hasReachedTimeout(): Boolean {
         val firstResultTime = this.firstResultTime.get()
         return firstResultTime != null &&
                 firstResultTime.elapsedSince() > config.maxTotalAggregationTime
     }
+
+    open fun isValidInterimResult(result: AnalyzerResult): Boolean = isValidResult(result)
 }

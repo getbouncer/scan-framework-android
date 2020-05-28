@@ -32,6 +32,8 @@ abstract class TensorFlowLiteAnalyzer<Input, MLInput, Output, MLOutput>(
     }
 
     override suspend fun analyze(data: Input, state: Unit): Output {
+        Log.d("HELLO", "in OCR analyze?!")
+
         val mlInput = loggingTimer.measure("transform") {
             transformData(data)
         }
@@ -47,6 +49,7 @@ abstract class TensorFlowLiteAnalyzer<Input, MLInput, Output, MLOutput>(
         return loggingTimer.measure("interpret") {
             interpretMLOutput(data, mlOutput)
         }
+        Log.d("HELLO", "done?!")
     }
 
     fun close() = tfInterpreter.close()
