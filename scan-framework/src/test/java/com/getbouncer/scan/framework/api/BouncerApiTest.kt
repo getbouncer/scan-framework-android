@@ -24,10 +24,17 @@ class BouncerApiTest {
         Config.apiKey = null
     }
 
+    /**
+     * TODO: this method should use runBlockingTest instead of runBlocking. However, an issue with
+     * runBlockingTest currently fails when functions under test use withContext(Dispatchers.IO) or
+     * withContext(Dispatchers.Default).
+     *
+     * See https://github.com/Kotlin/kotlinx.coroutines/issues/1204 for details.
+     */
     @Test
     @LargeTest
-    fun validateApiKey() {
-        when (val result = runBlocking { com.getbouncer.scan.framework.api.validateApiKey() }) {
+    fun validateApiKey() = runBlocking {
+        when (val result = com.getbouncer.scan.framework.api.validateApiKey()) {
             is NetworkResult.Success -> {
                 assertTrue(result.body.isApiKeyValid)
                 assertNull(result.body.keyInvalidReason)
@@ -36,16 +43,21 @@ class BouncerApiTest {
         }
     }
 
+    /**
+     * TODO: this method should use runBlockingTest instead of runBlocking. However, an issue with
+     * runBlockingTest currently fails when functions under test use withContext(Dispatchers.IO) or
+     * withContext(Dispatchers.Default).
+     *
+     * See https://github.com/Kotlin/kotlinx.coroutines/issues/1204 for details.
+     */
     @Test
     @LargeTest
-    fun getModelSignedUrl() {
-        when (val result = runBlocking {
-            getModelSignedUrl(
-                "fake_model",
-                "v0.0.1",
-                "model.tflite"
-            )
-        }) {
+    fun getModelSignedUrl() = runBlocking {
+        when (val result = getModelSignedUrl(
+            "fake_model",
+            "v0.0.1",
+            "model.tflite"
+        )) {
             is NetworkResult.Success -> {
                 assertNotNull(result.body.modelUrl)
                 assertNotEquals("", result.body.modelUrl)

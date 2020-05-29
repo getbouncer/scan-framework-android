@@ -113,7 +113,7 @@ class LoaderTest {
     @Test
     @LargeTest
     fun loadModelFromWeb_signedUrlFail() {
-        Config.apiKey = "4U7hWrEBdmgZrrIOQanpzJTaiwlZPFhf"
+        Config.apiKey = "__INTEGRATION_TEST_INVALID_KEY__"
         val localFileName = "test_loadModelFromWeb_fail"
         val localFile = File(testContext.cacheDir, localFileName)
         if (localFile.exists()) {

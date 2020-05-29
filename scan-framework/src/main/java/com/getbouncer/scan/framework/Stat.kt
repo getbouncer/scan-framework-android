@@ -1,5 +1,6 @@
 package com.getbouncer.scan.framework
 
+import android.util.Log
 import androidx.annotation.CheckResult
 import com.getbouncer.scan.framework.time.Clock
 import com.getbouncer.scan.framework.time.ClockMark
@@ -52,14 +53,17 @@ object Stats {
      */
     @CheckResult
     fun trackTask(name: String): StatTracker =
-        if (!Config.trackStats) StatTrackerNoOpImpl else StatTrackerImpl { clockMark, result ->
+        if (!Config.trackStats) StatTrackerNoOpImpl else StatTrackerImpl { startedAt, result ->
             taskMutex.withLock {
                 val list = tasks[name]
                 if (list == null) {
-                    tasks[name] = listOf(TaskStats(clockMark, clockMark.elapsedSince(), result))
+                    tasks[name] = listOf(TaskStats(startedAt, startedAt.elapsedSince(), result))
                 } else {
-                    tasks[name] = list + TaskStats(clockMark, clockMark.elapsedSince(), result)
+                    tasks[name] = list + TaskStats(startedAt, startedAt.elapsedSince(), result)
                 }
+            }
+            if (Config.isDebug) {
+                Log.v(Config.logTag, "Task $name got result $result after ${startedAt.elapsedSince()}")
             }
         }
 
@@ -116,6 +120,9 @@ object Stats {
                         results = results
                     )
                 }
+            }
+            if (Config.isDebug) {
+                Log.v(Config.logTag, "Repeating task $name got result $result after ${startedAt.elapsedSince()}")
             }
         }
 

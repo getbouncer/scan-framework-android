@@ -1,12 +1,25 @@
 # Changelog
 
-## [2.0.0007](https://github.com/getbouncer/scan-framework-android/tree/2.0.0007) (2020-05-12)
+## [2.0.0008](https://github.com/getbouncer/scan-framework-android/tree/2.0.0008) (2020-05-21)
 
-[Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0006...2.0.0007)
+[Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0007...2.0.0008)
 
 **Merged pull requests:**
 
-- Fix crash on network failure [\#4](https://github.com/getbouncer/scan-framework-android/pull/4) ([awushensky](https://github.com/awushensky))
+- Bump kotlinx-coroutines-android from 1.3.6 to 1.3.7 [\#19](https://github.com/getbouncer/scan-framework-android/pull/19) ([dependabot-preview[bot]](https://github.com/apps/dependabot-preview))
+- Bump kotlinx-coroutines-test from 1.3.6 to 1.3.7 [\#18](https://github.com/getbouncer/scan-framework-android/pull/18) ([dependabot-preview[bot]](https://github.com/apps/dependabot-preview))
+- Use invalid api key for test [\#14](https://github.com/getbouncer/scan-framework-android/pull/14) ([awushensky](https://github.com/awushensky))
+- Bump com.github.dcendents.android-maven from 2.0 to 2.1 [\#13](https://github.com/getbouncer/scan-framework-android/pull/13) ([dependabot-preview[bot]](https://github.com/apps/dependabot-preview))
+- Bump tensorflow-lite from 1.15.0 to 2.2.0 [\#12](https://github.com/getbouncer/scan-framework-android/pull/12) ([dependabot-preview[bot]](https://github.com/apps/dependabot-preview))
+- Bump com.jfrog.bintray from 1.7.3 to 1.8.5 [\#11](https://github.com/getbouncer/scan-framework-android/pull/11) ([dependabot-preview[bot]](https://github.com/apps/dependabot-preview))
+- Add more tests [\#8](https://github.com/getbouncer/scan-framework-android/pull/8) ([awushensky](https://github.com/awushensky))
+- Add android test github action [\#7](https://github.com/getbouncer/scan-framework-android/pull/7) ([awushensky](https://github.com/awushensky))
+- Ensure results are not duplicated [\#6](https://github.com/getbouncer/scan-framework-android/pull/6) ([awushensky](https://github.com/awushensky))
+- Optimize some image utilities [\#5](https://github.com/getbouncer/scan-framework-android/pull/5) ([awushensky](https://github.com/awushensky))
+
+## [2.0.0007](https://github.com/getbouncer/scan-framework-android/tree/2.0.0007) (2020-05-12)
+
+[Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0006...2.0.0007)
 
 ## [2.0.0006](https://github.com/getbouncer/scan-framework-android/tree/2.0.0006) (2020-05-09)
 
@@ -22,6 +35,7 @@
 
 **Merged pull requests:**
 
+- Fix crash on network failure [\#4](https://github.com/getbouncer/scan-framework-android/pull/4) ([awushensky](https://github.com/awushensky))
 - Remove build from git [\#2](https://github.com/getbouncer/scan-framework-android/pull/2) ([awushensky](https://github.com/awushensky))
 - Update documentation [\#1](https://github.com/getbouncer/scan-framework-android/pull/1) ([awushensky](https://github.com/awushensky))
 
