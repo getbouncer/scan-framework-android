@@ -271,8 +271,12 @@ class FiniteAnalyzerLoop<DataFrame, State, Output>(
     private val framesProcessed: AtomicInteger = AtomicInteger(0)
 
     override suspend fun start(processingCoroutineScope: CoroutineScope) {
-        frames.forEach { processFrame(it) }
-        super.start(processingCoroutineScope)
+        val framesToProcess = frames.map { processFrame(it) }.any()
+        if (framesToProcess) {
+            super.start(processingCoroutineScope)
+        } else {
+            resultHandler.onAllDataProcessed()
+        }
     }
 
     override suspend fun processFrame(frame: DataFrame): Boolean = processFrameMutex.withLock {
