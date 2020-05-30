@@ -21,6 +21,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 private val MAX_ANALYZER_DELAY = 1.seconds
+private val MIN_ANALYZER_DELAY = 50.milliseconds
 
 data class LoopState<State>(
     val startedAt: ClockMark?,
@@ -56,6 +57,7 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
 
     private val startMutex = Mutex()
     private val cancelMutex = Mutex()
+    private val executionDurationMutex = Mutex()
 
     private var state = LoopState(
         startedAt = null,
@@ -64,7 +66,7 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
     )
 
     private val analyzerExecutionDurations = LinkedList<Duration>()
-    protected var averageAnalyzerExecutionDuration = 50.milliseconds
+    protected var averageAnalyzerExecutionDuration = MIN_ANALYZER_DELAY
         private set
 
     internal abstract val name: String
@@ -143,15 +145,20 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
         }
     }
 
-    private fun updateAnalyzerExecutionDuration(newDuration: Duration) {
-        analyzerExecutionDurations.add(newDuration)
-        if (analyzerExecutionDurations.size > analyzerPool.analyzers.size) {
-            analyzerExecutionDurations.removeFirst()
-        }
+    private suspend fun updateAnalyzerExecutionDuration(newDuration: Duration) =
+        executionDurationMutex.withLock {
+            analyzerExecutionDurations.add(newDuration)
+            if (analyzerExecutionDurations.size > analyzerPool.analyzers.size && analyzerExecutionDurations.size > 0) {
+                analyzerExecutionDurations.removeFirst()
+            }
 
-        averageAnalyzerExecutionDuration =
-                analyzerExecutionDurations.reduce { one, two -> one + two } / analyzerExecutionDurations.size
-    }
+            averageAnalyzerExecutionDuration = when {
+                analyzerExecutionDurations.size > 1 -> analyzerExecutionDurations
+                    .reduce { a, b -> a + b } / analyzerExecutionDurations.size
+                analyzerExecutionDurations.size == 1 -> analyzerExecutionDurations.first
+                else -> MIN_ANALYZER_DELAY
+            }
+        }
 
     private suspend fun handleAnalyzerFailure(workerScope: CoroutineScope, t: Throwable) {
         if (withContext(Dispatchers.Main) { onAnalyzerFailure(t) }) {
