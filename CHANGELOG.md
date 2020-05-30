@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.0.0010](https://github.com/getbouncer/scan-framework-android/tree/2.0.0010) (2020-05-30)
+
+[Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0009...2.0.0010)
+
+**Merged pull requests:**
+
+- Terminate a finite loop that has no data [\#30](https://github.com/getbouncer/scan-framework-android/pull/30) ([awushensky](https://github.com/awushensky))
+- Bump gradle from 3.6.3 to 4.0.0 [\#29](https://github.com/getbouncer/scan-framework-android/pull/29) ([dependabot-preview[bot]](https://github.com/apps/dependabot-preview))
+
 ## [2.0.0009](https://github.com/getbouncer/scan-framework-android/tree/2.0.0009) (2020-05-29)
 
 [Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0008...2.0.0009)
