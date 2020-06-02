@@ -45,12 +45,6 @@ object Config {
      */
     @JvmStatic
     val trackStats: Boolean = true
-
-    /**
-     * Network configuration details.
-     */
-    @JvmStatic
-    val network = NetworkConfig
 }
 
 object NetworkConfig {

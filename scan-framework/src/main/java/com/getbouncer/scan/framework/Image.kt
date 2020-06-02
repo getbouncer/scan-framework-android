@@ -1,4 +1,4 @@
-package com.getbouncer.scan.framework.image
+package com.getbouncer.scan.framework
 
 import android.app.ActivityManager
 import android.content.Context
@@ -44,6 +44,7 @@ fun isSupportedFormat(imageFormat: Int) = when (imageFormat) {
  * Convert an image to a bitmap for processing. This will throw an [ImageTypeNotSupportedException]
  * if the image type is not supported (see [isSupportedFormat]).
  */
+@Throws(ImageTypeNotSupportedException::class)
 fun Image.toBitmap(
     crop: Rect = Rect(
         0,
@@ -172,13 +173,11 @@ private fun ByteBuffer.toByteArray(): ByteArray {
 }
 
 fun Bitmap.toRGBByteBuffer(mean: ImageTransformValues, std: ImageTransformValues): ByteBuffer {
-    val argb = IntArray(width * height).also {
-        getPixels(it, 0, width, 0, 0, width, height)
-    }
+    val argb = IntArray(width * height).also { getPixels(it, 0, width, 0, 0, width, height) }
 
-    val rgbFloat = ByteBuffer.allocateDirect(
-        this.width * this.height * DIM_PIXEL_SIZE * NUM_BYTES_PER_CHANNEL)
+    val rgbFloat = ByteBuffer.allocateDirect(this.width * this.height * DIM_PIXEL_SIZE * NUM_BYTES_PER_CHANNEL)
     rgbFloat.order(ByteOrder.nativeOrder())
+
     argb.forEach {
         // ignore the alpha value ((it shr 24 and 0xFF) - mean.alpha) / std.alpha)
         rgbFloat.putFloat(((it shr 16 and 0xFF) - mean.red) / std.red)
@@ -228,14 +227,10 @@ fun ByteBuffer.rbgaToBitmap(size: Size, mean: Float = 0F, std: Float = 255F): Bi
 
 fun Bitmap.crop(crop: Rect): Bitmap {
     require(crop.left < crop.right && crop.top < crop.bottom) { "Cannot use negative crop" }
-    require(crop.left >= 0 && crop.top >= 0 && crop.bottom <= this.height && crop.right <= this.width) { "Crop is larger than source image" }
-    return Bitmap.createBitmap(
-        this,
-        crop.left,
-        crop.top,
-        crop.width(),
-        crop.height()
-    )
+    require(crop.left >= 0 && crop.top >= 0 && crop.bottom <= this.height && crop.right <= this.width) {
+        "Crop is larger than source image"
+    }
+    return Bitmap.createBitmap(this, crop.left, crop.top, crop.width(), crop.height())
 }
 
 fun Bitmap.rotate(rotationDegrees: Float): Bitmap = if (rotationDegrees != 0F) {
