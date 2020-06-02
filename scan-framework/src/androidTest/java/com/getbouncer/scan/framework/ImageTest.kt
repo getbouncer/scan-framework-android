@@ -1,4 +1,4 @@
-package com.getbouncer.scan.framework.image
+package com.getbouncer.scan.framework
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -17,7 +17,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import org.junit.Test
 
-class ImageUtilsTest {
+class ImageTest {
 
     private val testResources = InstrumentationRegistry.getInstrumentation().context.resources
 
