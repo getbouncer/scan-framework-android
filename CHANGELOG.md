@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.0.0010](https://github.com/getbouncer/scan-framework-android/tree/2.0.0010) (2020-05-30)
+
+[Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0009...2.0.0010)
+
+**Merged pull requests:**
+
+- Terminate a finite loop that has no data [\#30](https://github.com/getbouncer/scan-framework-android/pull/30) ([awushensky](https://github.com/awushensky))
+- Bump gradle from 3.6.3 to 4.0.0 [\#29](https://github.com/getbouncer/scan-framework-android/pull/29) ([dependabot-preview[bot]](https://github.com/apps/dependabot-preview))
+
+## [2.0.0009](https://github.com/getbouncer/scan-framework-android/tree/2.0.0009) (2020-05-29)
+
+[Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0008...2.0.0009)
+
+**Merged pull requests:**
+
+- Bump core-ktx from 1.2.0 to 1.3.0 [\#28](https://github.com/getbouncer/scan-framework-android/pull/28) ([dependabot-preview[bot]](https://github.com/apps/dependabot-preview))
+- Start aggregation timer on valid result [\#27](https://github.com/getbouncer/scan-framework-android/pull/27) ([awushensky](https://github.com/awushensky))
+- Stop ignoring scan timeout [\#26](https://github.com/getbouncer/scan-framework-android/pull/26) ([awushensky](https://github.com/awushensky))
+- Simplify results [\#25](https://github.com/getbouncer/scan-framework-android/pull/25) ([awushensky](https://github.com/awushensky))
+- Add logging to stats [\#24](https://github.com/getbouncer/scan-framework-android/pull/24) ([awushensky](https://github.com/awushensky))
+
 ## [2.0.0008](https://github.com/getbouncer/scan-framework-android/tree/2.0.0008) (2020-05-21)
 
 [Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0007...2.0.0008)
@@ -21,6 +42,10 @@
 
 [Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0006...2.0.0007)
 
+**Merged pull requests:**
+
+- Fix crash on network failure [\#4](https://github.com/getbouncer/scan-framework-android/pull/4) ([awushensky](https://github.com/awushensky))
+
 ## [2.0.0006](https://github.com/getbouncer/scan-framework-android/tree/2.0.0006) (2020-05-09)
 
 [Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0005...2.0.0006)
@@ -35,7 +60,6 @@
 
 **Merged pull requests:**
 
-- Fix crash on network failure [\#4](https://github.com/getbouncer/scan-framework-android/pull/4) ([awushensky](https://github.com/awushensky))
 - Remove build from git [\#2](https://github.com/getbouncer/scan-framework-android/pull/2) ([awushensky](https://github.com/awushensky))
 - Update documentation [\#1](https://github.com/getbouncer/scan-framework-android/pull/1) ([awushensky](https://github.com/awushensky))
 

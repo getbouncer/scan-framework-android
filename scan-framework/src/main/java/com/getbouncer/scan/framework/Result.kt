@@ -195,6 +195,7 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
      * For example, a user that is scanning an object, but then backgrounds the scanning app. In the case that the scan
      * should be restarted, this feature pauses the result handlers and resets the state.
      */
+    @Synchronized
     open fun resetAndPause() {
         isPaused = true
 
@@ -218,10 +219,12 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
      * Reset the state of the aggregator. This is useful for aggregating data that can become invalid, such as when a
      * user is scanning an object, and moves the object away from the camera before the scan has completed.
      */
-    protected suspend fun reset() {
+    protected open suspend fun reset() {
         firstResultTime = null
         firstFrameTime = null
         haveSeenValidResult.set(false)
+        totalFramesProcessed.set(0)
+        framesProcessedSinceLastUpdate.set(0)
 
         saveFrameMutex.withLock {
             savedFrames.clear()

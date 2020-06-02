@@ -157,7 +157,7 @@ private fun Image.yuvToNV21Bytes(): ByteArray {
 }
 
 private fun Image.jpegToBitmap(): Bitmap {
-    assert(format == ImageFormat.JPEG)
+    check(format == ImageFormat.JPEG) { "Image is not in JPEG format" }
 
     val imageBuffer = planes[0].buffer
     val imageBytes = ByteArray(imageBuffer.remaining())
@@ -210,7 +210,7 @@ fun hasOpenGl31(context: Context): Boolean {
 
 fun ByteBuffer.rbgaToBitmap(size: Size, mean: Float = 0F, std: Float = 255F): Bitmap {
     this.rewind()
-    assert(this.limit() == size.width * size.height) { "ByteBuffer limit does not match expected size" }
+    check(this.limit() == size.width * size.height) { "ByteBuffer limit does not match expected size" }
     val bitmap = Bitmap.createBitmap(size.width, size.height, Bitmap.Config.ARGB_8888)
     val rgba = IntBuffer.allocate(size.width * size.height)
     while (this.hasRemaining()) {
@@ -227,8 +227,8 @@ fun ByteBuffer.rbgaToBitmap(size: Size, mean: Float = 0F, std: Float = 255F): Bi
 }
 
 fun Bitmap.crop(crop: Rect): Bitmap {
-    assert(crop.left < crop.right && crop.top < crop.bottom) { "Cannot use negative crop" }
-    assert(crop.left >= 0 && crop.top >= 0 && crop.bottom <= this.height && crop.right <= this.width) { "Crop is larger than source image" }
+    require(crop.left < crop.right && crop.top < crop.bottom) { "Cannot use negative crop" }
+    require(crop.left >= 0 && crop.top >= 0 && crop.bottom <= this.height && crop.right <= this.width) { "Crop is larger than source image" }
     return Bitmap.createBitmap(
         this,
         crop.left,

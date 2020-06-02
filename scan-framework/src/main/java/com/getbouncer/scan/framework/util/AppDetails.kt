@@ -27,8 +27,7 @@ data class AppDetails(
 
 private fun getAppPackageName(context: Context): String? = context.applicationContext.packageName
 
-@Suppress("DEPRECATION")
-private fun getApplicationId(): String = BuildConfig.APPLICATION_ID
+private fun getApplicationId(): String = "" // no longer available in later versions of gradle.
 
 private fun getLibraryPackageName(): String = BuildConfig.LIBRARY_PACKAGE_NAME
 
@@ -36,6 +35,6 @@ private fun getSdkVersion(): String = BuildConfig.VERSION_NAME
 
 private fun getSdkVersionCode(): Int = BuildConfig.VERSION_CODE
 
-private fun getSdkFlavor(): String = BuildConfig.FLAVOR
+private fun getSdkFlavor(): String = BuildConfig.BUILD_TYPE
 
 private fun isDebugBuild(): Boolean = BuildConfig.DEBUG

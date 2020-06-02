@@ -205,6 +205,43 @@ class LoopTest {
         }
     }
 
+    @Test(timeout = 1000)
+    @SmallTest
+    @ExperimentalCoroutinesApi
+    fun finiteAnalyzerLoop_analyzeDataNoData() = runBlockingTest {
+        var dataProcessed = false
+
+        class TestResultHandler : TerminatingResultHandler<Int, Int, Int> {
+            override suspend fun onResult(result: Int, state: Int, data: Int) { fail() }
+
+            override suspend fun onAllDataProcessed() { dataProcessed = true }
+
+            override suspend fun onTerminatedEarly() { fail() }
+        }
+
+        val analyzerPool = AnalyzerPool.Factory(
+            analyzerFactory = TestAnalyzerFactory(),
+            desiredAnalyzerCount = 12
+        ).buildAnalyzerPool()
+
+        val loop = FiniteAnalyzerLoop(
+            analyzerPool = analyzerPool,
+            onAnalyzerFailure = { fail(it.message) },
+            onResultFailure = { fail(it.message) },
+            initialState = 1,
+            name = "TestAnalyzerLoop",
+            resultHandler = TestResultHandler(),
+            frames = emptyList(),
+            timeLimit = 500.milliseconds
+        )
+
+        loop.start(GlobalScope)
+
+        while (!dataProcessed) {
+            yield()
+        }
+    }
+
     private class TestAnalyzer : Analyzer<Int, Int, Int> {
         override val name: String = "TestAnalyzer"
         override suspend fun analyze(data: Int, state: Int): Int = data + state
