@@ -230,7 +230,6 @@ fun Bitmap.crop(crop: Rect): Bitmap {
     require(crop.left >= 0 && crop.top >= 0 && crop.bottom <= this.height && crop.right <= this.width) {
         "Crop is larger than source image"
     }
-    
     return Bitmap.createBitmap(this, crop.left, crop.top, crop.width(), crop.height())
 }
 
