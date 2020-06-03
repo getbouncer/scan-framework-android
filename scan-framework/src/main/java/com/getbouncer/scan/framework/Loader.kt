@@ -10,8 +10,8 @@ import com.getbouncer.scan.framework.exception.HashMismatchException
 import com.getbouncer.scan.framework.util.retry
 import java.io.File
 import java.io.FileInputStream
-import java.io.FileOutputStream
 import java.io.FileNotFoundException
+import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.net.URL
