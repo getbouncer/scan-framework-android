@@ -94,9 +94,17 @@ private class Memoize0<out Result>(private val function: () -> Result): () -> Re
  */
 private class Memoize1<in Input, out Result>(private val function: (Input) -> Result): (Input) -> Result {
     private val values = mutableMapOf<Input, Result>()
+    private val locks = mutableMapOf<Input, Any>()
 
     @Synchronized
-    override fun invoke(input: Input): Result = values.getOrPut(input) { function(input) }
+    private fun getLock(input: Input): Any = locks.getOrPut(input) { Object() }
+
+    override fun invoke(input: Input): Result {
+        val lock = getLock(input)
+        return synchronized(lock) {
+            values.getOrPut(input) { function(input) }
+        }
+    }
 }
 
 /**
@@ -109,8 +117,7 @@ private class Memoize2<in Input1, in Input2, out Result>(private val function: (
     private val locks = mutableMapOf<Pair<Input1, Input2>, Any>()
 
     @Synchronized
-    private fun getLock(input1: Input1, input2: Input2): Any =
-        locks.getOrPut(input1 to input2) { Object() }
+    private fun getLock(input1: Input1, input2: Input2): Any = locks.getOrPut(input1 to input2) { Object() }
 
     override fun invoke(input1: Input1, input2: Input2): Result {
         val lock = getLock(input1, input2)
