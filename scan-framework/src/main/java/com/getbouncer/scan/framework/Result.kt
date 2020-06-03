@@ -79,6 +79,37 @@ interface TerminatingResultHandler<Input, State, Output> : ResultHandler<Input, 
 }
 
 /**
+ * A simple class by which results can be stored.
+ */
+class ResultCounter<T> {
+    private val resultMutex = Mutex()
+    private val results = mutableMapOf<T, Int>()
+
+    /**
+     * Get the result that was most frequently seen.
+     *
+     * @param minCount the minimum times a result must have been seen.
+     */
+    fun getMostLikelyResult(minCount: Int = 1): T? {
+        val candidate = results.maxBy { it.value }?.key
+        return if (results[candidate] ?: 0 >= minCount) candidate else null
+    }
+
+    /**
+     * Store the value of a result. Return the number of matching results previously seen.
+     */
+    suspend fun countResult(field: T): Int = resultMutex.withLock {
+        val count = 1 + (results[field] ?: 0)
+        results[field] = count
+        count
+    }
+
+    suspend fun reset() = resultMutex.withLock {
+        results.clear()
+    }
+}
+
+/**
  * Configuration for a result aggregator
  */
 data class ResultAggregatorConfig internal constructor(
@@ -195,23 +226,15 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
      * For example, a user that is scanning an object, but then backgrounds the scanning app. In the case that the scan
      * should be restarted, this feature pauses the result handlers and resets the state.
      */
-    @Synchronized
-    open fun resetAndPause() {
+    fun resetAndPause() {
         isPaused = true
-
-        firstResultTime = null
-        firstFrameTime = null
-        totalFramesProcessed.set(0)
-        framesProcessedSinceLastUpdate.set(0)
-        haveSeenValidResult.set(false)
-        savedFrames.clear()
-        savedFramesSizeBytes.clear()
+        runBlocking { reset() }
     }
 
     /**
      * Resume aggregation after it has been paused.
      */
-    open fun resume() {
+    fun resume() {
         isPaused = false
     }
 
