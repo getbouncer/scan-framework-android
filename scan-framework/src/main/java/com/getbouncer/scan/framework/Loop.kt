@@ -7,9 +7,6 @@ import com.getbouncer.scan.framework.time.measureTime
 import com.getbouncer.scan.framework.time.milliseconds
 import com.getbouncer.scan.framework.time.min
 import com.getbouncer.scan.framework.time.seconds
-import java.util.LinkedList
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -19,6 +16,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.util.LinkedList
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 
 private val MAX_ANALYZER_DELAY = 1.seconds
 private val MIN_ANALYZER_DELAY = 50.milliseconds
@@ -118,21 +118,23 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
     ) {
         for (frame in channel) {
             val stat = Stats.trackRepeatingTask("analyzer_execution:$name:${analyzer.name}")
-            updateAnalyzerExecutionDuration(measureTime {
-                try {
-                    val analyzerResult = analyzer.analyze(frame, state.state)
-
+            updateAnalyzerExecutionDuration(
+                measureTime {
                     try {
-                        onResult(analyzerResult, state, frame, updateState)
+                        val analyzerResult = analyzer.analyze(frame, state.state)
+
+                        try {
+                            onResult(analyzerResult, state, frame, updateState)
+                        } catch (t: Throwable) {
+                            stat.trackResult("result_failure")
+                            handleResultFailure(workerScope, t)
+                        }
                     } catch (t: Throwable) {
-                        stat.trackResult("result_failure")
-                        handleResultFailure(workerScope, t)
+                        stat.trackResult("analyzer_failure")
+                        handleAnalyzerFailure(workerScope, t)
                     }
-                } catch (t: Throwable) {
-                    stat.trackResult("analyzer_failure")
-                    handleAnalyzerFailure(workerScope, t)
                 }
-            })
+            )
 
             cancelMutex.withLock {
                 if (state.finished && workerScope.isActive) {
@@ -153,9 +155,10 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
             }
 
             averageAnalyzerExecutionDuration = when {
-                analyzerExecutionDurations.size > 1 -> analyzerExecutionDurations
-                    .reduce { a, b -> a + b } / analyzerExecutionDurations.size
-                analyzerExecutionDurations.size == 1 -> analyzerExecutionDurations.first
+                analyzerExecutionDurations.size > 1 ->
+                    analyzerExecutionDurations.reduce { a, b -> a + b } / analyzerExecutionDurations.size
+                analyzerExecutionDurations.size == 1 ->
+                    analyzerExecutionDurations.first
                 else -> MIN_ANALYZER_DELAY
             }
         }
@@ -223,8 +226,7 @@ class ProcessBoundAnalyzerLoop<DataFrame, State, Output>(
         shouldReceivedFrameMutex.withLock {
             val running = state.startedAt != null && !state.finished
             val analyzerDelay = min(averageAnalyzerExecutionDuration, MAX_ANALYZER_DELAY) / analyzerPool.desiredAnalyzerCount
-            val shouldReceiveNewFrame =
-                    running && lastFrameReceivedAt?.elapsedSince() ?: Duration.INFINITE > analyzerDelay
+            val shouldReceiveNewFrame = running && lastFrameReceivedAt?.elapsedSince() ?: Duration.INFINITE > analyzerDelay
             if (shouldReceiveNewFrame) {
                 this.lastFrameReceivedAt = Clock.markNow()
             }

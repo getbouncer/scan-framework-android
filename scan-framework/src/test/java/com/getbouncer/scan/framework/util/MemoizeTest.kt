@@ -1,12 +1,12 @@
 package com.getbouncer.scan.framework.util
 
 import androidx.test.filters.SmallTest
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class MemoizeTest {
 

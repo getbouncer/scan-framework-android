@@ -1,12 +1,12 @@
 package com.getbouncer.scan.framework.util
 
 import androidx.test.filters.SmallTest
+import org.junit.Assert
+import org.junit.Test
 import kotlin.random.Random
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import org.junit.Assert
-import org.junit.Test
 
 class ArrayExtensionsTest {
 

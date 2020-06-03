@@ -2,11 +2,11 @@ package com.getbouncer.scan.framework.util
 
 import androidx.test.filters.SmallTest
 import com.getbouncer.scan.framework.time.milliseconds
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class RetryTest {
 
@@ -16,10 +16,13 @@ class RetryTest {
     fun retry_succeedsFirst() = runBlockingTest {
         var executions = 0
 
-        assertEquals(1, retry(1.milliseconds) {
-            executions++
-            1
-        })
+        assertEquals(
+            1,
+            retry(1.milliseconds) {
+                executions++
+                1
+            }
+        )
         assertEquals(1, executions)
     }
 
@@ -29,14 +32,17 @@ class RetryTest {
     fun retry_succeedsSecond() = runBlockingTest {
         var executions = 0
 
-        assertEquals(1, retry(1.milliseconds) {
-            executions++
-            if (executions == 2) {
-                1
-            } else {
-                throw RuntimeException()
+        assertEquals(
+            1,
+            retry(1.milliseconds) {
+                executions++
+                if (executions == 2) {
+                    1
+                } else {
+                    throw RuntimeException()
+                }
             }
-        })
+        )
         assertEquals(2, executions)
     }
 

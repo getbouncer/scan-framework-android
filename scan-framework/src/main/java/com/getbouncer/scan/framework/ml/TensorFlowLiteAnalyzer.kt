@@ -6,10 +6,10 @@ import com.getbouncer.scan.framework.AnalyzerFactory
 import com.getbouncer.scan.framework.Config
 import com.getbouncer.scan.framework.Loader
 import com.getbouncer.scan.framework.time.Timer
-import java.nio.ByteBuffer
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.tensorflow.lite.Interpreter
+import java.nio.ByteBuffer
 
 /**
  * A TensorFlowLite analyzer uses an [Interpreter] to analyze data.

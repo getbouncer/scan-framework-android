@@ -5,9 +5,9 @@ import androidx.annotation.CheckResult
 import com.getbouncer.scan.framework.time.Clock
 import com.getbouncer.scan.framework.time.ClockMark
 import com.getbouncer.scan.framework.time.Duration
-import java.util.UUID
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.UUID
 
 object Stats {
     val instanceId = UUID.randomUUID().toString()

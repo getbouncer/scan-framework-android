@@ -24,8 +24,8 @@ data class ScanStatistics(
     companion object {
         suspend fun fromStats(): ScanStatistics {
             val stats = ScanStatistics(
-                tasks = Stats.getTasks().mapValues {
-                    entry -> entry.value.map { TaskStatistics.fromTaskStats(it) }
+                tasks = Stats.getTasks().mapValues { entry ->
+                    entry.value.map { TaskStatistics.fromTaskStats(it) }
                 },
                 repeatingTasks = Stats.getRepeatingTasks().mapValues {
                     RepeatingTaskStatistics.fromRepeatingTaskStats(it.value)

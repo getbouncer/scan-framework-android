@@ -46,12 +46,7 @@ fun RectForm.toRectF() = RectF(left(), top(), right(), bottom())
 /**
  * Calculate the area of a rectangle while clamping the width and height between 0 and 1000.
  */
-fun RectForm.areaClamped() = clamp(
-    calcWidth(),
-    0F,
-    1000F
-) *
-        clamp(calcHeight(), 0F, 1000F)
+fun RectForm.areaClamped() = clamp(calcWidth(), 0F, 1000F) * clamp(calcHeight(), 0F, 1000F)
 
 /**
  * Create a rectangle of the overlap of this rectangle and another. Note that if the two rectangles

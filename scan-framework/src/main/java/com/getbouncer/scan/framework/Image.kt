@@ -215,9 +215,9 @@ fun ByteBuffer.rbgaToBitmap(size: Size, mean: Float = 0F, std: Float = 255F): Bi
     while (this.hasRemaining()) {
         rgba.put(
             (0xFF shl 24) + // set 0xFF for the alpha value
-            (((this.float * std) + mean).roundToInt()) +
-            (((this.float * std) + mean).roundToInt() shl 8) +
-            (((this.float * std) + mean).roundToInt() shl 16)
+                (((this.float * std) + mean).roundToInt()) +
+                (((this.float * std) + mean).roundToInt() shl 8) +
+                (((this.float * std) + mean).roundToInt() shl 16)
         )
     }
     rgba.rewind()

@@ -85,8 +85,9 @@ private fun getDevicePhoneCount(context: Context) =
         -1
     }
 
-private fun getNetworkOperator(context: Context) = (context.getSystemService(Context.TELEPHONY_SERVICE) as
-        TelephonyManager?)?.networkOperator
+private fun getNetworkOperator(context: Context) = (
+    context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager?
+)?.networkOperator
 
 private fun getOsVersion() = Build.VERSION.SDK_INT
 
