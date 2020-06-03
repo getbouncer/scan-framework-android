@@ -8,17 +8,19 @@ import kotlinx.coroutines.sync.withLock
  * work in the suspend function, others will suspend until a result is available, and then return
  * that result.
  */
-class MemoizeSuspend0<out Result>(private val function: suspend () -> Result) {
+private class MemoizeSuspend0<out Result>(private val f: suspend () -> Result) {
     private val initializeMutex = Mutex()
 
     private object UNINITIALIZED_VALUE
     @Volatile private var value: Any? = UNINITIALIZED_VALUE
 
-    suspend fun invoke(): Result = initializeMutex.withLock {
-        if (value == UNINITIALIZED_VALUE) {
-            value = function()
+    fun memoize(): suspend () -> Result = {
+        initializeMutex.withLock {
+            if (value == UNINITIALIZED_VALUE) {
+                value = f()
+            }
+            @Suppress("UNCHECKED_CAST") (value as Result)
         }
-        @Suppress("UNCHECKED_CAST") (value as Result)
     }
 }
 
@@ -27,7 +29,7 @@ class MemoizeSuspend0<out Result>(private val function: suspend () -> Result) {
  * work in the suspend function, others will suspend until a result is available, and then return
  * that result.
  */
-class MemoizeSuspend1<in Input, out Result>(private val function: suspend (Input) -> Result) {
+private class MemoizeSuspend1<in Input, out Result>(private val f: suspend (Input) -> Result) {
     private val lookupMutex = Mutex()
 
     private val values = mutableMapOf<Input, Result>()
@@ -37,8 +39,10 @@ class MemoizeSuspend1<in Input, out Result>(private val function: suspend (Input
         mutexes.getOrPut(input) { Mutex() }
     }
 
-    suspend fun invoke(input: Input): Result = getMutex(input).withLock {
-        values.getOrPut(input) { function(input) }
+    fun memoize(): suspend (Input) -> Result = { input ->
+        getMutex(input).withLock {
+            values.getOrPut(input) { f(input) }
+        }
     }
 }
 
@@ -47,18 +51,21 @@ class MemoizeSuspend1<in Input, out Result>(private val function: suspend (Input
  * work in the suspend function, others will suspend until a result is available, and then return
  * that result.
  */
-class MemoizeSuspend2<in Input1, in Input2, out Result>(private val function: suspend (Input1, Input2) -> Result) {
+private class MemoizeSuspend2<in Input1, in Input2, out Result>(private val f: suspend (Input1, Input2) -> Result) {
     private val lookupMutex = Mutex()
 
     private val values = mutableMapOf<Pair<Input1, Input2>, Result>()
     private val mutexes = mutableMapOf<Pair<Input1, Input2>, Mutex>()
 
-    private suspend fun getMutex(input1: Input1, input2: Input2): Mutex = lookupMutex.withLock {
-        mutexes.getOrPut(input1 to input2) { Mutex() }
+    private suspend fun getMutex(pair: Pair<Input1, Input2>): Mutex = lookupMutex.withLock {
+        mutexes.getOrPut(pair) { Mutex() }
     }
 
-    suspend fun invoke(input1: Input1, input2: Input2): Result = getMutex(input1, input2).withLock {
-        values.getOrPut(input1 to input2) { function(input1, input2) }
+    fun memoize(): suspend (Input1, Input2) -> Result = { input1, input2 ->
+        val pair = input1 to input2
+        getMutex(pair).withLock {
+            values.getOrPut(pair) { f(input1, input2) }
+        }
     }
 }
 
@@ -67,7 +74,7 @@ class MemoizeSuspend2<in Input1, in Input2, out Result>(private val function: su
  * ever invoke the backing function, other threads will block until a result is available, and then
  * return that result.
  */
-class Memoize0<out Result>(private val function: () -> Result): () -> Result {
+private class Memoize0<out Result>(private val function: () -> Result): () -> Result {
     private object UNINITIALIZED_VALUE
     @Volatile private var value: Any? = UNINITIALIZED_VALUE
 
@@ -85,7 +92,7 @@ class Memoize0<out Result>(private val function: () -> Result): () -> Result {
  * ever invoke the backing function, other threads will block until a result is available, and then
  * return that result.
  */
-class Memoize1<in Input, out Result>(private val function: (Input) -> Result): (Input) -> Result {
+private class Memoize1<in Input, out Result>(private val function: (Input) -> Result): (Input) -> Result {
     private val values = mutableMapOf<Input, Result>()
 
     @Synchronized
@@ -97,7 +104,7 @@ class Memoize1<in Input, out Result>(private val function: (Input) -> Result): (
  * ever invoke the backing function, other threads will block until a result is available, and then
  * return that result.
  */
-class Memoize2<in Input1, in Input2, out Result>(private val function: (Input1, Input2) -> Result): (Input1, Input2) -> Result {
+private class Memoize2<in Input1, in Input2, out Result>(private val function: (Input1, Input2) -> Result): (Input1, Input2) -> Result {
     private val values = mutableMapOf<Pair<Input1, Input2>, Result>()
     private val locks = mutableMapOf<Pair<Input1, Input2>, Any>()
 
@@ -113,8 +120,18 @@ class Memoize2<in Input1, in Input2, out Result>(private val function: (Input1, 
     }
 }
 
-fun <Result> (() -> Result).memoize() = Memoize0(this)
+fun <Result> (() -> Result).memoized(): () -> Result = Memoize0(this)
+fun <Input, Result> ((Input) -> Result).memoized(): (Input) -> Result = Memoize1(this)
+fun <Input1, Input2, Result> ((Input1, Input2) -> Result).memoized(): (Input1, Input2) -> Result = Memoize2(this)
 
-fun <Result> (suspend () -> Result).memoize() = MemoizeSuspend0(this)
-fun <Input, Result> (suspend (Input) -> Result).memoize() = MemoizeSuspend1(this)
-fun <Input1, Input2, Result> (suspend (Input1, Input2) -> Result).memoize() = MemoizeSuspend2(this)
+fun <Result> (suspend () -> Result).memoizedSuspend() = MemoizeSuspend0(this).memoize()
+fun <Input, Result> (suspend (Input) -> Result).memoizedSuspend() = MemoizeSuspend1(this).memoize()
+fun <Input1, Input2, Result> (suspend (Input1, Input2) -> Result).memoizedSuspend() = MemoizeSuspend2(this).memoize()
+
+fun <Result> memoize(f: () -> Result): () -> Result = Memoize0(f)
+fun <Input, Result> memoize(f: (Input) -> Result): (Input) -> Result = Memoize1(f)
+fun <Input1, Input2, Result> memoize(f: (Input1, Input2) -> Result): (Input1, Input2) -> Result = Memoize2(f)
+
+fun <Result> memoizeSuspend(f: suspend() -> Result): suspend () -> Result = MemoizeSuspend0(f).memoize()
+fun <Input, Result> memoizeSuspend(f: suspend(Input) -> Result): suspend (Input) -> Result = MemoizeSuspend1(f).memoize()
+fun <Input1, Input2, Result> memoizeSuspend(f: suspend(Input1, Input2) -> Result): suspend (Input1, Input2) -> Result = MemoizeSuspend2(f).memoize()
