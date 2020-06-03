@@ -74,7 +74,7 @@ private class MemoizeSuspend2<in Input1, in Input2, out Result>(private val f: s
  * ever invoke the backing function, other threads will block until a result is available, and then
  * return that result.
  */
-private class Memoize0<out Result>(private val function: () -> Result): () -> Result {
+private class Memoize0<out Result>(private val function: () -> Result) : () -> Result {
     private object UNINITIALIZED_VALUE
     @Volatile private var value: Any? = UNINITIALIZED_VALUE
 
@@ -92,7 +92,7 @@ private class Memoize0<out Result>(private val function: () -> Result): () -> Re
  * ever invoke the backing function, other threads will block until a result is available, and then
  * return that result.
  */
-private class Memoize1<in Input, out Result>(private val function: (Input) -> Result): (Input) -> Result {
+private class Memoize1<in Input, out Result>(private val function: (Input) -> Result) : (Input) -> Result {
     private val values = mutableMapOf<Input, Result>()
     private val locks = mutableMapOf<Input, Any>()
 
@@ -112,7 +112,7 @@ private class Memoize1<in Input, out Result>(private val function: (Input) -> Re
  * ever invoke the backing function, other threads will block until a result is available, and then
  * return that result.
  */
-private class Memoize2<in Input1, in Input2, out Result>(private val function: (Input1, Input2) -> Result): (Input1, Input2) -> Result {
+private class Memoize2<in Input1, in Input2, out Result>(private val function: (Input1, Input2) -> Result) : (Input1, Input2) -> Result {
     private val values = mutableMapOf<Pair<Input1, Input2>, Result>()
     private val locks = mutableMapOf<Pair<Input1, Input2>, Any>()
 
