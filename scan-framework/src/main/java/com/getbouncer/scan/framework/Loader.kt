@@ -128,7 +128,7 @@ abstract class WebLoader(private val context: Context) : Loader {
     /**
      * Download and verify the hash of a file.
      */
-    @Throws(IOException::class, HashMismatchException::class, NoSuchAlgorithmException::class)
+    @Throws(IOException::class, HashMismatchException::class, NoSuchAlgorithmException::class, FileNotFoundException::class)
     private suspend fun downloadAndVerify() {
         if (!hashMatches(localFileName, hash)) {
             downloadFile(url, localFileName)
