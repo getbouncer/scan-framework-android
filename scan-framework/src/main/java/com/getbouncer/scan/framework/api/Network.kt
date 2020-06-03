@@ -6,13 +6,13 @@ import com.getbouncer.scan.framework.Config
 import com.getbouncer.scan.framework.NetworkConfig
 import com.getbouncer.scan.framework.time.Timer
 import com.getbouncer.scan.framework.util.retry
+import kotlinx.serialization.KSerializer
 import java.io.InputStreamReader
 import java.io.OutputStream
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.zip.GZIPOutputStream
-import kotlinx.serialization.KSerializer
 
 private const val REQUEST_METHOD_GET = "GET"
 private const val REQUEST_METHOD_POST = "POST"
@@ -42,10 +42,12 @@ suspend fun <Request, Response, Error> postForResult(
     errorSerializer: KSerializer<Error>
 ): NetworkResult<Response, Error> =
     translateNetworkResult(
-        postJsonWithRetries(
+        networkResult = postJsonWithRetries(
             path = path,
             jsonData = Config.json.stringify(requestSerializer, data)
-        ), responseSerializer, errorSerializer
+        ),
+        responseSerializer = responseSerializer,
+        errorSerializer = errorSerializer
     )
 
 suspend fun <Response, Error> getForResult(
@@ -63,33 +65,36 @@ private fun <Response, Error> translateNetworkResult(
     responseSerializer: KSerializer<Response>,
     errorSerializer: KSerializer<Error>
 ): NetworkResult<Response, Error> = when (networkResult) {
-    is NetworkResult.Success -> try {
-        NetworkResult.Success<Response, Error>(
-            responseCode = networkResult.responseCode,
-            body = Config.json.parse(responseSerializer, networkResult.body)
-        )
-    } catch (t: Throwable) {
+    is NetworkResult.Success ->
+        try {
+            NetworkResult.Success<Response, Error>(
+                responseCode = networkResult.responseCode,
+                body = Config.json.parse(responseSerializer, networkResult.body)
+            )
+        } catch (t: Throwable) {
+            try {
+                NetworkResult.Error<Response, Error>(
+                    responseCode = networkResult.responseCode,
+                    error = Config.json.parse(errorSerializer, networkResult.body)
+                )
+            } catch (et: Throwable) {
+                NetworkResult.Exception<Response, Error>(networkResult.responseCode, t)
+            }
+        }
+    is NetworkResult.Error ->
         try {
             NetworkResult.Error<Response, Error>(
                 responseCode = networkResult.responseCode,
-                error = Config.json.parse(errorSerializer, networkResult.body)
+                error = Config.json.parse(errorSerializer, networkResult.error)
             )
-        } catch (et: Throwable) {
+        } catch (t: Throwable) {
             NetworkResult.Exception<Response, Error>(networkResult.responseCode, t)
         }
-    }
-    is NetworkResult.Error -> try {
-        NetworkResult.Error<Response, Error>(
+    is NetworkResult.Exception ->
+        NetworkResult.Exception(
             responseCode = networkResult.responseCode,
-            error = Config.json.parse(errorSerializer, networkResult.error)
+            exception = networkResult.exception
         )
-    } catch (t: Throwable) {
-        NetworkResult.Exception<Response, Error>(networkResult.responseCode, t)
-    }
-    is NetworkResult.Exception -> NetworkResult.Exception(
-        responseCode = networkResult.responseCode,
-        exception = networkResult.exception
-    )
 }
 
 /**
@@ -263,9 +268,9 @@ private fun writeData(outputStream: OutputStream, data: String) {
 }
 
 private fun readResponse(connection: HttpURLConnection): String =
-        InputStreamReader(connection.inputStream).use {
-            it.readLines().joinToString(separator = "\n")
-        }
+    InputStreamReader(connection.inputStream).use {
+        it.readLines().joinToString(separator = "\n")
+    }
 
 /**
  * Get the [NetworkConfig.baseUrl] with no trailing slashes.

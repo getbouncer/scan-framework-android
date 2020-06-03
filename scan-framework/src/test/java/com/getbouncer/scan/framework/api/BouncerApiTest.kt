@@ -2,15 +2,15 @@ package com.getbouncer.scan.framework.api
 
 import androidx.test.filters.LargeTest
 import com.getbouncer.scan.framework.Config
+import kotlinx.coroutines.runBlocking
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.test.fail
-import kotlinx.coroutines.runBlocking
-import org.junit.After
-import org.junit.Before
-import org.junit.Test
 
 class BouncerApiTest {
 
@@ -53,11 +53,13 @@ class BouncerApiTest {
     @Test
     @LargeTest
     fun getModelSignedUrl() = runBlocking {
-        when (val result = getModelSignedUrl(
-            "fake_model",
-            "v0.0.1",
-            "model.tflite"
-        )) {
+        when (
+            val result = getModelSignedUrl(
+                "fake_model",
+                "v0.0.1",
+                "model.tflite"
+            )
+        ) {
             is NetworkResult.Success -> {
                 assertNotNull(result.body.modelUrl)
                 assertNotEquals("", result.body.modelUrl)

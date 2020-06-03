@@ -65,14 +65,16 @@ fun Array<FloatArray>.reshape(newColumns: Int): Array<FloatArray> {
 
     var oldRow = 0
     var oldColumn = 0
-    return Array(newRows) { FloatArray(newColumns) {
-        val value = this[oldRow][oldColumn]
-        if (++oldColumn == oldColumns) {
-            oldColumn = 0
-            oldRow++
+    return Array(newRows) {
+        FloatArray(newColumns) {
+            val value = this[oldRow][oldColumn]
+            if (++oldColumn == oldColumns) {
+                oldColumn = 0
+                oldRow++
+            }
+            value
         }
-        value
-    } }
+    }
 }
 
 /**

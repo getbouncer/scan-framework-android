@@ -1,12 +1,12 @@
 @file:JvmName("Coroutine")
 package com.getbouncer.scan.framework.util
 
-import kotlin.coroutines.Continuation
-import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.CoroutineContext
 
 @JvmOverloads
 fun <R> getContinuation(

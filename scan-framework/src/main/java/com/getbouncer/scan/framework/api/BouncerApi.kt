@@ -30,13 +30,17 @@ fun uploadScanStats(
     instanceId: String,
     scanId: String?
 ) = GlobalScope.launch(Dispatchers.IO) {
-    postData(STATS_PATH, StatsPayload(
-        instanceId = instanceId,
-        scanId = scanId,
-        device = ClientDevice.fromDevice(Device.fromContext(context)),
-        app = AppInfo.fromAppDetails(AppDetails.fromContext(context)),
-        scanStats = ScanStatistics.fromStats()
-    ), StatsPayload.serializer())
+    postData(
+        path = STATS_PATH,
+        data = StatsPayload(
+            instanceId = instanceId,
+            scanId = scanId,
+            device = ClientDevice.fromDevice(Device.fromContext(context)),
+            app = AppInfo.fromAppDetails(AppDetails.fromContext(context)),
+            scanStats = ScanStatistics.fromStats()
+        ),
+        requestSerializer = StatsPayload.serializer()
+    )
 }
 
 /**

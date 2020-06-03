@@ -46,12 +46,12 @@ private class LoggingTimer(
 
         if (updateClock.elapsedSince() > updateInterval) {
             updateClock = Clock.markNow()
-            Log.d(tag,
+            Log.d(
+                tag,
                 "$name${if (!taskName.isNullOrEmpty()) ".$taskName" else ""} executing on " +
-                        "thread ${Thread.currentThread().name} " +
-                        "AT ${executionCount / executionTotalDuration.inSeconds} FPS, " +
-                        "${executionTotalDuration.inMilliseconds / executionCount} MS/F"
-
+                    "thread ${Thread.currentThread().name} " +
+                    "AT ${executionCount / executionTotalDuration.inSeconds} FPS, " +
+                    "${executionTotalDuration.inMilliseconds / executionCount} MS/F"
             )
         }
         return result

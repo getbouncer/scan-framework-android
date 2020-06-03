@@ -13,10 +13,6 @@ import com.getbouncer.scan.framework.api.dto.StatsPayload
 import com.getbouncer.scan.framework.api.dto.ValidateApiKeyResponse
 import com.getbouncer.scan.framework.util.AppDetails
 import com.getbouncer.scan.framework.util.Device
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNotNull
-import kotlin.test.fail
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runBlockingTest
@@ -24,6 +20,10 @@ import kotlinx.serialization.Serializable
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
+import kotlin.test.fail
 
 class BouncerApiAndroidTest {
 
@@ -60,19 +60,21 @@ class BouncerApiAndroidTest {
             task1.trackResult("$i")
         }
 
-        when (val result = postForResult(
-            path = STATS_PATH,
-            data = StatsPayload(
-                instanceId = "test_instance_id",
-                scanId = "test_scan_id",
-                device = ClientDevice.fromDevice(Device.fromContext(testContext)),
-                app = AppInfo.fromAppDetails(AppDetails.fromContext(testContext)),
-                scanStats = ScanStatistics.fromStats()
-            ),
-            requestSerializer = StatsPayload.serializer(),
-            responseSerializer = ScanStatsResults.serializer(),
-            errorSerializer = BouncerErrorResponse.serializer()
-        )) {
+        when (
+            val result = postForResult(
+                path = STATS_PATH,
+                data = StatsPayload(
+                    instanceId = "test_instance_id",
+                    scanId = "test_scan_id",
+                    device = ClientDevice.fromDevice(Device.fromContext(testContext)),
+                    app = AppInfo.fromAppDetails(AppDetails.fromContext(testContext)),
+                    scanStats = ScanStatistics.fromStats()
+                ),
+                requestSerializer = StatsPayload.serializer(),
+                responseSerializer = ScanStatsResults.serializer(),
+                errorSerializer = BouncerErrorResponse.serializer()
+            )
+        ) {
             is NetworkResult.Success<ScanStatsResults, BouncerErrorResponse> -> {
                 assertEquals(200, result.responseCode)
             }
@@ -112,11 +114,13 @@ class BouncerApiAndroidTest {
     @Test
     @LargeTest
     fun getModelSignedUrl() = runBlocking {
-        when (val result = getModelSignedUrl(
-            "fake_model",
-            "v0.0.1",
-            "model.tflite"
-        )) {
+        when (
+            val result = getModelSignedUrl(
+                "fake_model",
+                "v0.0.1",
+                "model.tflite"
+            )
+        ) {
             is NetworkResult.Success<ModelSignedUrlResponse, BouncerErrorResponse> -> {
                 assertNotNull(result.body.modelUrl)
                 assertNotEquals("", result.body.modelUrl)

@@ -8,6 +8,11 @@ import com.getbouncer.scan.framework.api.dto.ModelSignedUrlResponse
 import com.getbouncer.scan.framework.api.getModelSignedUrl
 import com.getbouncer.scan.framework.exception.HashMismatchException
 import com.getbouncer.scan.framework.util.retry
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
@@ -19,11 +24,6 @@ import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 
 @Throws(IOException::class)
 private fun readFileToByteBuffer(
@@ -206,9 +206,9 @@ abstract class ModelWebLoader(context: Context) : WebLoader(context) {
     abstract val modelFileName: String
 
     override val url: URL by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
-        when (val signedUrlResponse = runBlocking {
-            getModelSignedUrl(modelClass, modelVersion, modelFileName)
-        }) {
+        when (
+            val signedUrlResponse = runBlocking { getModelSignedUrl(modelClass, modelVersion, modelFileName) }
+        ) {
             is NetworkResult.Success<ModelSignedUrlResponse, BouncerErrorResponse> ->
                 URL(signedUrlResponse.body.modelUrl)
             else -> {

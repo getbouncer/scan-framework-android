@@ -6,16 +6,16 @@ import com.getbouncer.scan.framework.time.ClockMark
 import com.getbouncer.scan.framework.time.Duration
 import com.getbouncer.scan.framework.time.Rate
 import com.getbouncer.scan.framework.time.seconds
-import java.util.LinkedList
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicLong
-import kotlin.math.max
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.util.LinkedList
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
+import kotlin.math.max
 
 /**
  * A specialized result handler for loops. This handler can update the state of the loop, including asking for
@@ -288,11 +288,13 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
 
             saveFrames(interimResult, state.state, data)
 
-            launch { listener.onInterimResult(
-                result = interimResult,
-                state = state.state,
-                frame = data
-            ) }
+            launch {
+                listener.onInterimResult(
+                    result = interimResult,
+                    state = state.state,
+                    frame = data
+                )
+            }
 
             aggregatorExecutionStats.trackResult("frame_processed")
             if (finalResult != null) {
@@ -408,7 +410,7 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
      * Allow aggregators to get an immutable list of frames.
      */
     protected fun getSavedFrames():
-            Map<String, LinkedList<SavedFrame<DataFrame, State, InterimResult>>> = savedFrames
+        Map<String, LinkedList<SavedFrame<DataFrame, State, InterimResult>>> = savedFrames
 
     /**
      * Determine if enough time has elapsed since the last frame rate update.

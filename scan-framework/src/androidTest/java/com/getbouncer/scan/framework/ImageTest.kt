@@ -11,11 +11,11 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
 import com.getbouncer.scan.framework.test.R
+import org.junit.Test
 import java.nio.ByteBuffer
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import org.junit.Test
 
 class ImageTest {
 
@@ -126,12 +126,14 @@ class ImageTest {
         assertEquals(375, bitmap.height, "Bitmap height is not expected")
 
         // crop the bitmap
-        val croppedBitmap = bitmap.crop(Rect(
-            bitmap.width / 4,
-            bitmap.height / 4,
-            bitmap.width * 3 / 4,
-            bitmap.height * 3 / 4
-        ))
+        val croppedBitmap = bitmap.crop(
+            Rect(
+                bitmap.width / 4,
+                bitmap.height / 4,
+                bitmap.width * 3 / 4,
+                bitmap.height * 3 / 4
+            )
+        )
 
         // check the expected sizes of the images
         assertEquals(
