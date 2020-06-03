@@ -10,6 +10,7 @@ import com.getbouncer.scan.framework.exception.HashMismatchException
 import com.getbouncer.scan.framework.util.retry
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
@@ -99,14 +100,27 @@ abstract class WebLoader(private val context: Context) : Loader {
             return null
         }
 
-        try {
-            retry(NetworkConfig.retryDelay) { downloadAndVerify() }
+        val exception = try {
+            retry(NetworkConfig.retryDelay) {
+                try {
+                    downloadAndVerify()
+                    null
+                } catch (t: FileNotFoundException) {
+                    // do not retry FileNotFoundExceptions
+                    t
+                }
+            }
         } catch (t: Throwable) {
-            this@WebLoader.loadException = t
-            stat.trackResult(t::class.java.simpleName)
-            Log.e(Config.logTag, "Failed to get signed url for model", t)
+            t
+        }
+
+        if (exception != null) {
+            this@WebLoader.loadException = exception
+            stat.trackResult(exception::class.java.simpleName)
+            Log.e(Config.logTag, "Failed to get signed url for model", exception)
             return null
         }
+
         stat.trackResult("success")
         readFileToByteBuffer(localFileName)
     }
@@ -114,7 +128,7 @@ abstract class WebLoader(private val context: Context) : Loader {
     /**
      * Download and verify the hash of a file.
      */
-    @Throws(IOException::class, HashMismatchException::class, NoSuchAlgorithmException::class)
+    @Throws(IOException::class, HashMismatchException::class, NoSuchAlgorithmException::class, FileNotFoundException::class)
     private suspend fun downloadAndVerify() {
         if (!hashMatches(localFileName, hash)) {
             downloadFile(url, localFileName)
