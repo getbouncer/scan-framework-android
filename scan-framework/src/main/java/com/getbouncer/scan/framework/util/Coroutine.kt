@@ -26,18 +26,3 @@ abstract class JavaContinuation<in T>(runOn: CoroutineContext = Dispatchers.Defa
     )
     override val context: CoroutineContext = runOn
 }
-
-/**
- * This is a local version of BiConsumer which allows use at API 21 instead of 24.
- */
-@FunctionalInterface
-interface ContinuationConsumer<T, U> {
-
-    /**
-     * Performs this operation on the given arguments.
-     *
-     * @param t the first input argument
-     * @param u the second input argument
-     */
-    fun accept(t: T, u: U)
-}
