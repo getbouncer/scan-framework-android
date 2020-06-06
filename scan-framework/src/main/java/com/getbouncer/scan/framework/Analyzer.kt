@@ -20,8 +20,6 @@ interface Analyzer<Input, State, Output> {
  * A factory to create analyzers.
  */
 interface AnalyzerFactory<Output : Analyzer<*, *, *>> {
-    val isThreadSafe: Boolean
-
     suspend fun newInstance(): Output?
 }
 
@@ -33,13 +31,13 @@ class AnalyzerPool<DataFrame, State, Output> private constructor(
     val analyzers: List<Analyzer<DataFrame, State, Output>>
 ) {
 
-    class Factory<DataFrame, State, Output>(
+    class Factory<DataFrame, State, Output> @JvmOverloads constructor(
         private val analyzerFactory: AnalyzerFactory<out Analyzer<DataFrame, State, Output>>,
         private val desiredAnalyzerCount: Int = DEFAULT_ANALYZER_PARALLEL_COUNT
     ) {
         suspend fun buildAnalyzerPool() = AnalyzerPool(
-            desiredAnalyzerCount,
-            (0 until if (analyzerFactory.isThreadSafe) desiredAnalyzerCount else 1).mapNotNull { analyzerFactory.newInstance() }
+            desiredAnalyzerCount = desiredAnalyzerCount,
+            analyzers = (0 until desiredAnalyzerCount).mapNotNull { analyzerFactory.newInstance() }
         )
     }
 }

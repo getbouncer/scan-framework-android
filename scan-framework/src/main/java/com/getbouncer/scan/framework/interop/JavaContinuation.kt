@@ -7,23 +7,23 @@ import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
 
 /**
- * A utility class for calling suspend functions from java. This transforms a suspend function into a
+ * A utility class for calling suspend functions from java. This allows listening to a suspend function with callbacks.
  */
-abstract class JavaContinuation<in T>(
+abstract class JavaContinuation<in T> @JvmOverloads constructor(
     runOn: CoroutineContext = Dispatchers.Default,
     private val listenOn: CoroutineContext = Dispatchers.Main
 ) : Continuation<T> {
-    abstract fun resume(value: T)
-    abstract fun resumeWithException(exception: Throwable)
+    abstract fun onComplete(value: T)
+    abstract fun onException(exception: Throwable)
     override fun resumeWith(result: Result<T>) = result.fold(
         onSuccess = {
             runBlocking(listenOn) {
-                resume(it)
+                onComplete(it)
             }
         },
         onFailure = {
             runBlocking(listenOn) {
-                resumeWithException(it)
+                onException(it)
             }
         }
     )
