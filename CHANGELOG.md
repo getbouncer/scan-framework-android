@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.0.0011](https://github.com/getbouncer/scan-framework-android/tree/2.0.0011) (2020-06-06)
+
+[Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0010...2.0.0011)
+
+**Merged pull requests:**
+
+- Update coroutine interoperability [\#36](https://github.com/getbouncer/scan-framework-android/pull/36) ([awushensky](https://github.com/awushensky))
+- Standardize result counter [\#35](https://github.com/getbouncer/scan-framework-android/pull/35) ([awushensky](https://github.com/awushensky))
+- Bump ktlint from 0.36.0 to 0.37.0 [\#34](https://github.com/getbouncer/scan-framework-android/pull/34) ([dependabot-preview[bot]](https://github.com/apps/dependabot-preview))
+- Add memoization functions [\#33](https://github.com/getbouncer/scan-framework-android/pull/33) ([awushensky](https://github.com/awushensky))
+- Don't retry on FileNotFoundExceptions [\#32](https://github.com/getbouncer/scan-framework-android/pull/32) ([xsl](https://github.com/xsl))
+- Update image utilities [\#31](https://github.com/getbouncer/scan-framework-android/pull/31) ([awushensky](https://github.com/awushensky))
+
 ## [2.0.0010](https://github.com/getbouncer/scan-framework-android/tree/2.0.0010) (2020-05-30)
 
 [Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0009...2.0.0010)
