@@ -1,5 +1,5 @@
 @file:JvmName("Coroutine")
-package com.getbouncer.scan.framework.util
+package com.getbouncer.scan.framework.interop
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -9,7 +9,10 @@ import kotlin.coroutines.CoroutineContext
 /**
  * A utility class for calling suspend functions from java. This transforms a suspend function into a
  */
-abstract class JavaContinuation<in T>(runOn: CoroutineContext = Dispatchers.Default, private val listenOn: CoroutineContext = Dispatchers.Main) : Continuation<T> {
+abstract class JavaContinuation<in T>(
+    runOn: CoroutineContext = Dispatchers.Default,
+    private val listenOn: CoroutineContext = Dispatchers.Main
+) : Continuation<T> {
     abstract fun resume(value: T)
     abstract fun resumeWithException(exception: Throwable)
     override fun resumeWith(result: Result<T>) = result.fold(
