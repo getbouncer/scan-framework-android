@@ -59,7 +59,9 @@ data class MyAnalyzerOutput(output: Int)
 Next, create an analyzer to process inputs into outputs, and a factory to create new instances of the analyzer.
 ```kotlin
 class MyAnalyzer : Analyzer<MyData, Unit, MyAnalyzerOutput> {
-    override suspend fun analyze(data: MyData, state: Unit): MyAnalyzerOutput = data.data.length
+    override suspend fun analyze(data: MyData, state: Unit): MyAnalyzerOutput = MyAnalyzerOutput(data.data.length)
+
+    override val name = "my_analyzer"
 }
 
 class MyAnalyzerFactory : AnalyzerFactory<MyAnalyzer> {
@@ -79,7 +81,7 @@ class MyResultHandler(listener: ResultHanlder<MyData, Unit, MyAnalyzerOutput>) :
         resultsReceived++
         if (resultsReceived > 10) {
             updateState(state.copy(finished = true))
-            listener.onResult(totalResult, state, data)
+            listener.onResult(MyAnalyzerOutput(totalResult), state.state, data)
         } else {
             totalResult += result.output
         }
@@ -93,7 +95,7 @@ class MyDataProcessor : CoroutineScope, ResultHandler<MyData, Unit, MyAnalyzerOu
 
     private val analyzerPool = AnalyzerPool.Factory(MyAnalyzerFactory(), 4)
     private val resultHandler = MyResultHandler(this)
-    private val loop: AnalyzerLoop<MyData, MyAnalyzerOutput> by lazy {
+    private val loop: AnalyzerLoop<MyData, Unit, MyAnalyzerOutput> by lazy {
         ProcessBoundAnalyzerLoop(analyzerPool, resultHandler, Unit, "my_loop")
     }
     
