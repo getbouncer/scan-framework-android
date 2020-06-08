@@ -36,7 +36,7 @@ class LoopTest {
             }
         }
 
-        val analyzerPool = AnalyzerPool.Factory(
+        val analyzerPool = AnalyzerPoolFactory(
             analyzerFactory = TestAnalyzerFactory(),
             desiredAnalyzerCount = 12
         ).buildAnalyzerPool()
@@ -86,7 +86,7 @@ class LoopTest {
             }
         }
 
-        val analyzerPool = AnalyzerPool.Factory(
+        val analyzerPool = AnalyzerPoolFactory(
             analyzerFactory = TestAnalyzerFactory(),
             desiredAnalyzerCount = 0
         ).buildAnalyzerPool()
@@ -133,7 +133,7 @@ class LoopTest {
             }
         }
 
-        val analyzerPool = AnalyzerPool.Factory(
+        val analyzerPool = AnalyzerPoolFactory(
             analyzerFactory = TestAnalyzerFactory(),
             desiredAnalyzerCount = 12
         ).buildAnalyzerPool()
@@ -182,7 +182,7 @@ class LoopTest {
             }
         }
 
-        val analyzerPool = AnalyzerPool.Factory(
+        val analyzerPool = AnalyzerPoolFactory(
             analyzerFactory = TestAnalyzerFactory(),
             desiredAnalyzerCount = 12
         ).buildAnalyzerPool()
@@ -219,7 +219,7 @@ class LoopTest {
             override suspend fun onTerminatedEarly() { fail() }
         }
 
-        val analyzerPool = AnalyzerPool.Factory(
+        val analyzerPool = AnalyzerPoolFactory(
             analyzerFactory = TestAnalyzerFactory(),
             desiredAnalyzerCount = 12
         ).buildAnalyzerPool()
@@ -248,7 +248,6 @@ class LoopTest {
     }
 
     private class TestAnalyzerFactory : AnalyzerFactory<TestAnalyzer> {
-        override val isThreadSafe: Boolean = true
         override suspend fun newInstance(): TestAnalyzer? = TestAnalyzer()
     }
 }

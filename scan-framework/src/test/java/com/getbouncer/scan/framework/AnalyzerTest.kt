@@ -13,11 +13,10 @@ class AnalyzerTest {
     @ExperimentalCoroutinesApi
     fun analyzerPoolCreateNormally() = runBlockingTest {
         class TestAnalyzerFactory : AnalyzerFactory<TestAnalyzer> {
-            override val isThreadSafe: Boolean = true
             override suspend fun newInstance(): TestAnalyzer? = TestAnalyzer()
         }
 
-        val analyzerPool = AnalyzerPool.Factory(
+        val analyzerPool = AnalyzerPoolFactory(
             analyzerFactory = TestAnalyzerFactory(),
             desiredAnalyzerCount = 12
         ).buildAnalyzerPool()
@@ -32,11 +31,10 @@ class AnalyzerTest {
     @ExperimentalCoroutinesApi
     fun analyzerPoolCreateFailure() = runBlockingTest {
         class TestAnalyzerFactory : AnalyzerFactory<TestAnalyzer> {
-            override val isThreadSafe: Boolean = true
             override suspend fun newInstance(): TestAnalyzer? = null
         }
 
-        val analyzerPool = AnalyzerPool.Factory(
+        val analyzerPool = AnalyzerPoolFactory(
             analyzerFactory = TestAnalyzerFactory(),
             desiredAnalyzerCount = 12
         ).buildAnalyzerPool()
@@ -50,11 +48,10 @@ class AnalyzerTest {
     @ExperimentalCoroutinesApi
     fun analyzerPoolSingleThreaded() = runBlockingTest {
         class TestAnalyzerFactory : AnalyzerFactory<TestAnalyzer> {
-            override val isThreadSafe: Boolean = false
             override suspend fun newInstance(): TestAnalyzer? = TestAnalyzer()
         }
 
-        val analyzerPool = AnalyzerPool.Factory(
+        val analyzerPool = AnalyzerPoolFactory(
             analyzerFactory = TestAnalyzerFactory(),
             desiredAnalyzerCount = 12
         ).buildAnalyzerPool()
