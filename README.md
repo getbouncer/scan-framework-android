@@ -65,9 +65,7 @@ class MyAnalyzer : Analyzer<MyData, Unit, MyAnalyzerOutput> {
 }
 
 class MyAnalyzerFactory : AnalyzerFactory<MyAnalyzer> {
-    override val isThreadSafe: Boolean = true
-    
-    override fun newInstance(): Analyzer? = MyAnalyzer()
+    override suspend fun newInstance(): Analyzer? = MyAnalyzer()
 }
 ```
 

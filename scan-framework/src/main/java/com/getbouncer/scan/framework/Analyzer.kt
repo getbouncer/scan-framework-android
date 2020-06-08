@@ -3,7 +3,7 @@ package com.getbouncer.scan.framework
 /**
  * The default number of analyzers to run in parallel.
  */
-private const val DEFAULT_ANALYZER_PARALLEL_COUNT = 4
+internal const val DEFAULT_ANALYZER_PARALLEL_COUNT = 4
 
 /**
  * An analyzer takes some data as an input, and returns an analyzed output. Analyzers should not contain any state. They
@@ -20,26 +20,26 @@ interface Analyzer<Input, State, Output> {
  * A factory to create analyzers.
  */
 interface AnalyzerFactory<Output : Analyzer<*, *, *>> {
-    val isThreadSafe: Boolean
-
     suspend fun newInstance(): Output?
 }
 
 /**
  * A pool of analyzers.
  */
-class AnalyzerPool<DataFrame, State, Output> private constructor(
+data class AnalyzerPool<DataFrame, State, Output>(
     val desiredAnalyzerCount: Int,
     val analyzers: List<Analyzer<DataFrame, State, Output>>
-) {
+)
 
-    class Factory<DataFrame, State, Output>(
-        private val analyzerFactory: AnalyzerFactory<out Analyzer<DataFrame, State, Output>>,
-        private val desiredAnalyzerCount: Int = DEFAULT_ANALYZER_PARALLEL_COUNT
-    ) {
-        suspend fun buildAnalyzerPool() = AnalyzerPool(
-            desiredAnalyzerCount,
-            (0 until if (analyzerFactory.isThreadSafe) desiredAnalyzerCount else 1).mapNotNull { analyzerFactory.newInstance() }
-        )
-    }
+/**
+ * A pool of analyzers.
+ */
+class AnalyzerPoolFactory<DataFrame, State, Output> @JvmOverloads constructor(
+    private val analyzerFactory: AnalyzerFactory<out Analyzer<DataFrame, State, Output>>,
+    private val desiredAnalyzerCount: Int = DEFAULT_ANALYZER_PARALLEL_COUNT
+) {
+    suspend fun buildAnalyzerPool() = AnalyzerPool(
+        desiredAnalyzerCount = desiredAnalyzerCount,
+        analyzers = (0 until desiredAnalyzerCount).mapNotNull { analyzerFactory.newInstance() }
+    )
 }
