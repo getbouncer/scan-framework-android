@@ -43,24 +43,6 @@ class AnalyzerTest {
         assertEquals(0, analyzerPool.analyzers.size)
     }
 
-    @Test
-    @SmallTest
-    @ExperimentalCoroutinesApi
-    fun analyzerPoolSingleThreaded() = runBlockingTest {
-        class TestAnalyzerFactory : AnalyzerFactory<TestAnalyzer> {
-            override suspend fun newInstance(): TestAnalyzer? = TestAnalyzer()
-        }
-
-        val analyzerPool = AnalyzerPoolFactory(
-            analyzerFactory = TestAnalyzerFactory(),
-            desiredAnalyzerCount = 12
-        ).buildAnalyzerPool()
-
-        assertEquals(12, analyzerPool.desiredAnalyzerCount)
-        assertEquals(1, analyzerPool.analyzers.size)
-        assertEquals(3, analyzerPool.analyzers[0].analyze(1, 2))
-    }
-
     private class TestAnalyzer : Analyzer<Int, Int, Int> {
         override val name: String = "TestAnalyzer"
         override suspend fun analyze(data: Int, state: Int): Int = data + state
