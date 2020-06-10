@@ -5,6 +5,7 @@ import com.getbouncer.scan.framework.time.milliseconds
 import com.getbouncer.scan.framework.time.nanoseconds
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.test.runBlockingTest
 import kotlinx.coroutines.yield
 import org.junit.Test
@@ -50,12 +51,13 @@ class LoopTest {
             resultHandler = TestResultHandler()
         )
 
-        loop.start(GlobalScope)
+        val channel = Channel<Int>(capacity = Channel.RENDEZVOUS)
+        loop.subscribeTo(channel, GlobalScope)
 
         repeat(dataCount) {
             var processedFrame = false
             while (!processedFrame) {
-                processedFrame = loop.processFrame(2)
+                processedFrame = channel.offer(2)
                 yield()
             }
         }
@@ -100,7 +102,8 @@ class LoopTest {
             resultHandler = TestResultHandler()
         )
 
-        loop.start(GlobalScope)
+        val channel = Channel<Int>(capacity = Channel.RENDEZVOUS)
+        loop.subscribeTo(channel, GlobalScope)
 
         while (!analyzerFailure) {
             yield()
@@ -235,7 +238,7 @@ class LoopTest {
             timeLimit = 500.milliseconds
         )
 
-        loop.start(GlobalScope)
+        loop.start(this)
 
         while (!dataProcessed) {
             yield()
