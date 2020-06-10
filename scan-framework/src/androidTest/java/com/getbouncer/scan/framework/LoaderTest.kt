@@ -32,12 +32,12 @@ class LoaderTest {
     @SmallTest
     fun loadModelFromResource_correct() {
         class ResourceModelLoaderImpl(context: Context) : ResourceLoader(context) {
-            override val resource: Int = R.drawable.ocr_card_numbers_clear
+            override val resource: Int = R.raw.sample_resource
         }
 
         val byteBuffer = runBlocking { ResourceModelLoaderImpl(testContext).loadData() }
         assertNotNull(byteBuffer)
-        assertEquals(335417, byteBuffer.limit(), "File is not expected size")
+        assertEquals(14, byteBuffer.limit(), "File is not expected size")
         byteBuffer.rewind()
 
         // ensure not all bytes are zero
@@ -47,12 +47,12 @@ class LoaderTest {
         }
         assertTrue(encounteredNonZeroByte, "All bytes were zero")
 
-        // ensure bytes 5-8 are "TFL3" ASCII encoded
-        byteBuffer.position(4)
-        assertEquals(byteBuffer.get().toInt(), 13)
-        assertEquals(byteBuffer.get().toInt(), 10)
-        assertEquals(byteBuffer.get().toInt(), 26)
-        assertEquals(byteBuffer.get().toInt(), 10)
+        // ensure bytes are correct
+        byteBuffer.rewind()
+        assertEquals('A', byteBuffer.get().toChar())
+        assertEquals('B', byteBuffer.get().toChar())
+        assertEquals('C', byteBuffer.get().toChar())
+        assertEquals('1', byteBuffer.get().toChar())
     }
 
     @Test

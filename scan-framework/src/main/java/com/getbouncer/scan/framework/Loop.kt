@@ -159,8 +159,6 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
  * If the enqueued data exceeds the allowed memory size, the bottom of the data stack will be dropped and will not be
  * processed. This alleviates memory pressure when producers are faster than the consuming analyzer.
  *
- * Any data enqueued via [receiveData] will be dropped once this loop has terminated.
- *
  * @param analyzerPool: A pool of analyzers to use in this loop.
  * @param resultHandler: A result handler that will be called with the results from the analyzers in this loop.
  * @param name: The name of this loop for stat and event tracking.
