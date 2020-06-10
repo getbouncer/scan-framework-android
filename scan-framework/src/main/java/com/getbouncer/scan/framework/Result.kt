@@ -1,6 +1,10 @@
 package com.getbouncer.scan.framework
 
 import android.util.Log
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.OnLifecycleEvent
 import com.getbouncer.scan.framework.time.Clock
 import com.getbouncer.scan.framework.time.ClockMark
 import com.getbouncer.scan.framework.time.Duration
@@ -197,9 +201,8 @@ data class ResultAggregatorConfig internal constructor(
  */
 abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult, FinalResult>(
     private val config: ResultAggregatorConfig,
-    private val listener: AggregateResultListener<DataFrame, State, InterimResult, FinalResult>,
-    private val name: String
-) : StateUpdatingResultHandler<DataFrame, LoopState<State>, AnalyzerResult> {
+    private val listener: AggregateResultListener<DataFrame, State, InterimResult, FinalResult>
+) : StateUpdatingResultHandler<DataFrame, LoopState<State>, AnalyzerResult>, LifecycleObserver {
 
     private var firstResultTime: ClockMark? = null
     private var firstFrameTime: ClockMark? = null
@@ -221,12 +224,15 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
     private val frameRateMutex = Mutex()
     private val resultMutex = Mutex()
 
+    protected abstract val name: String
+
     /**
      * Reset the state of the aggregator and pause aggregation. This is useful for aggregators that can be backgrounded.
      * For example, a user that is scanning an object, but then backgrounds the scanning app. In the case that the scan
      * should be restarted, this feature pauses the result handlers and resets the state.
      */
-    fun resetAndPause() {
+    @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+    private fun resetAndPause() {
         isPaused = true
         runBlocking { reset() }
     }
@@ -234,8 +240,17 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
     /**
      * Resume aggregation after it has been paused.
      */
-    fun resume() {
+    @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
+    private fun resume() {
         isPaused = false
+    }
+
+    /**
+     * Bind this result aggregator to a lifecycle. This allows the result aggregator to pause and reset when the
+     * lifecycle owner pauses.
+     */
+    open fun bindToLifecycle(lifecycleOwner: LifecycleOwner) {
+        lifecycleOwner.lifecycle.addObserver(this)
     }
 
     /**
