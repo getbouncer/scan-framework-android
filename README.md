@@ -129,8 +129,6 @@ class MyAnalyzer : Analyzer<MyData, Unit, MyAnalyzerOutput> {
 }
 
 class MyAnalyzerFactory : AnalyzerFactory<MyAnalyzer> {
-    override val isThreadSafe: Boolean = true
-    
     override fun newInstance(): Analyzer? = MyAnalyzer()
 }
 ```
@@ -161,8 +159,8 @@ class MyDataProcessor(dataToProcess: List<MyData>) : CoroutineScope, Terminating
         )
     }
     
-    fun start() {
-        loop.start()
+    fun subscribeTo(channel: Channel<MyData>) {
+        loop.subscribeTo(channel))
     }
     
     override fun onResult(result: MyAnalyzerOutput, state: Unit, data: MyData) {
@@ -195,6 +193,7 @@ class MyCameraAnalyzer : CoroutineScope, AggregateResultListener<PreviewImage, U
     private val analyzerLoader = SSDOcr.ModelLoader(this)
     private val analyzerFactory = SSDOcr.Factory(this, analyzerLoader)
     private val analyzerPool = AnalyzerPool(analyzerFactory)
+    private val cameraStream = Channel<PreviewImage>()
 
     private val resultHandler = PaymentCardImageResultAggregator(
         config = ResultAggregatorConfig.Builder().build(),
@@ -217,11 +216,11 @@ class MyCameraAnalyzer : CoroutineScope, AggregateResultListener<PreviewImage, U
     }
     
     fun startAnalyzing() {
-        loop.start()
+        loop.subscribeTo(cameraStream)
     }
 
     fun onCameraFrame(frame: PreviewImage) {
-        loop.processFrame(frame)
+        cameraStream.offer(frame)
     }
     
     /*
