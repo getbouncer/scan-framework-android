@@ -1,11 +1,14 @@
 # Changelog
 
-## [Unreleased](https://github.com/getbouncer/scan-framework-android/tree/HEAD)
+## [2.0.0012](https://github.com/getbouncer/scan-framework-android/tree/2.0.0012) (2020-06-11)
 
-[Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0011...HEAD)
+[Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0011...2.0.0012)
 
 **Merged pull requests:**
 
+- Fix framerate average calculation [\#40](https://github.com/getbouncer/scan-framework-android/pull/40) ([awushensky](https://github.com/awushensky))
+- Make result handlers listen to a lifecycle [\#39](https://github.com/getbouncer/scan-framework-android/pull/39) ([awushensky](https://github.com/awushensky))
+- Move images out of framework [\#38](https://github.com/getbouncer/scan-framework-android/pull/38) ([awushensky](https://github.com/awushensky))
 - Support java interop [\#37](https://github.com/getbouncer/scan-framework-android/pull/37) ([awushensky](https://github.com/awushensky))
 
 ## [2.0.0011](https://github.com/getbouncer/scan-framework-android/tree/2.0.0011) (2020-06-06)
@@ -39,6 +42,7 @@
 - Bump core-ktx from 1.2.0 to 1.3.0 [\#28](https://github.com/getbouncer/scan-framework-android/pull/28) ([dependabot-preview[bot]](https://github.com/apps/dependabot-preview))
 - Start aggregation timer on valid result [\#27](https://github.com/getbouncer/scan-framework-android/pull/27) ([awushensky](https://github.com/awushensky))
 - Stop ignoring scan timeout [\#26](https://github.com/getbouncer/scan-framework-android/pull/26) ([awushensky](https://github.com/awushensky))
+- Simplify results [\#25](https://github.com/getbouncer/scan-framework-android/pull/25) ([awushensky](https://github.com/awushensky))
 - Add logging to stats [\#24](https://github.com/getbouncer/scan-framework-android/pull/24) ([awushensky](https://github.com/awushensky))
 
 ## [2.0.0008](https://github.com/getbouncer/scan-framework-android/tree/2.0.0008) (2020-05-21)
@@ -47,7 +51,6 @@
 
 **Merged pull requests:**
 
-- Simplify results [\#25](https://github.com/getbouncer/scan-framework-android/pull/25) ([awushensky](https://github.com/awushensky))
 - Bump kotlinx-coroutines-android from 1.3.6 to 1.3.7 [\#19](https://github.com/getbouncer/scan-framework-android/pull/19) ([dependabot-preview[bot]](https://github.com/apps/dependabot-preview))
 - Bump kotlinx-coroutines-test from 1.3.6 to 1.3.7 [\#18](https://github.com/getbouncer/scan-framework-android/pull/18) ([dependabot-preview[bot]](https://github.com/apps/dependabot-preview))
 - Use invalid api key for test [\#14](https://github.com/getbouncer/scan-framework-android/pull/14) ([awushensky](https://github.com/awushensky))
