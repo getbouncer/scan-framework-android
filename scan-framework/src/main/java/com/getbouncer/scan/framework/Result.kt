@@ -211,6 +211,7 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
     private val framesProcessedSinceLastUpdate: AtomicLong = AtomicLong(0)
     private val haveSeenValidResult = AtomicBoolean(false)
 
+    private var isCanceled = false
     private var isPaused = false
     private var isFinished = false
 
@@ -222,7 +223,6 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
 
     private val saveFrameMutex = Mutex()
     private val frameRateMutex = Mutex()
-    private val resultMutex = Mutex()
 
     protected abstract val name: String
 
@@ -243,6 +243,15 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
     @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
     private fun resume() {
         isPaused = false
+    }
+
+    /**
+     * Cancel a result aggregator. This means that the result aggregator will ignore all further results and will never
+     * return a final result.
+     */
+    fun cancel() {
+        isCanceled = true
+        runBlocking { reset() }
     }
 
     /**
@@ -277,8 +286,8 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
         state: LoopState<State>,
         data: DataFrame,
         updateState: (LoopState<State>) -> Unit
-    ) = resultMutex.withLock {
-        if (state.finished || isPaused || isFinished) {
+    ) {
+        if (state.finished || isPaused || isCanceled || isFinished) {
             return
         }
 
@@ -406,17 +415,14 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
             shouldNotify
         }
 
+        val firstFrameTime = this.firstFrameTime ?: Clock.markNow()
+        this.firstFrameTime = firstFrameTime
+
         if (shouldNotifyOfFrameRate) {
-            val firstFrameTime = this.firstFrameTime
-            this.firstFrameTime = Clock.markNow()
+            val totalFrameRate = Rate(totalFrames, firstFrameTime.elapsedSince())
+            val instantFrameRate = Rate(framesSinceLastUpdate, lastNotifyTime.elapsedSince())
 
-            if (firstFrameTime != null) {
-                val totalFrameRate = Rate(totalFrames, firstFrameTime.elapsedSince())
-                val instantFrameRate = Rate(framesSinceLastUpdate, lastNotifyTime.elapsedSince())
-
-                logProcessingRate(totalFrameRate, instantFrameRate)
-            }
-
+            logProcessingRate(totalFrameRate, instantFrameRate)
             framesProcessedSinceLastUpdate.set(0)
         }
     }
