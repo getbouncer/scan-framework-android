@@ -129,7 +129,6 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
 
             cancelMutex.withLock {
                 if (state.finished && workerScope.isActive) {
-                    println("AGW WORKERS FINISHED, CANCELING SCOPE")
                     loopExecutionStatTracker.trackResult("success:$workerId")
                     workerScope.cancel()
                 }

@@ -32,7 +32,6 @@ class LoopTest {
                 data: Int,
                 updateState: (LoopState<Int>) -> Unit
             ) {
-                println("got result $result for data=$data with state=$state")
                 assertEquals(1, state.state)
                 val count = resultCount.incrementAndGet()
                 if (count >= dataCount) {
@@ -82,7 +81,6 @@ class LoopTest {
                 data: Int,
                 updateState: (LoopState<Int>) -> Unit
             ) {
-                println("got result $result for data=$data with state=$state")
                 assertEquals(1, state.state)
             }
         }
@@ -117,13 +115,11 @@ class LoopTest {
 
         class TestResultHandler : TerminatingResultHandler<Int, Int, String> {
             override suspend fun onResult(result: String, state: Int, data: Int) {
-                println("got result $result for data=$data with state=$state")
                 assertEquals(1, state)
                 resultCount.incrementAndGet()
             }
 
             override suspend fun onAllDataProcessed() {
-                println("AGW $dataCount == ${resultCount.get()} = ${dataCount == resultCount.get()}")
                 assertEquals(dataCount, resultCount.get())
                 dataProcessed = true
             }
@@ -165,7 +161,6 @@ class LoopTest {
 
         class TestResultHandler : TerminatingResultHandler<Int, Int, String> {
             override suspend fun onResult(result: String, state: Int, data: Int) {
-                println("got result $result for data=$data with state=$state")
                 assertEquals(1, state)
                 resultCount.incrementAndGet()
             }
