@@ -28,7 +28,7 @@ object Config {
     @JvmStatic
     var apiKey: String? = null
         set(value) {
-            if (value?.length ?: -1 != REQUIRED_API_KEY_LENGTH) {
+            if (value != null && value.length != REQUIRED_API_KEY_LENGTH) {
                 throw InvalidBouncerApiKeyException
             }
             field = value

@@ -97,8 +97,8 @@ class MyDataProcessor : CoroutineScope, ResultHandler<MyData, Unit, MyAnalyzerOu
         ProcessBoundAnalyzerLoop(analyzerPool, resultHandler, Unit, "my_loop", { true }, { true })
     }
     
-    fun subscribeToFlow(flow: Float<MyData>) {
-        loop.subscribeTo(flow)
+    fun subscribeTo(channel: ReceiveChannel<MyData>) {
+        loop.subscribeTo(channel)
     }
     
     fun onResult(result: MyAnalyzerOutput, state: Unit, data: MyData) {
