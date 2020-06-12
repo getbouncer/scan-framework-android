@@ -294,4 +294,4 @@ class FiniteAnalyzerLoop<DataFrame, State, Output>(
  */
 @ExperimentalCoroutinesApi
 suspend fun <T> Flow<T>.backPressureDrop(): Flow<T> =
-     channelFlow { collect { offer(it) } }.buffer(capacity = Channel.RENDEZVOUS)
+    channelFlow { collect { offer(it) } }.buffer(capacity = Channel.RENDEZVOUS)
