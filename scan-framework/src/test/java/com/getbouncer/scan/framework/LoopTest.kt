@@ -7,6 +7,9 @@ import com.getbouncer.scan.framework.time.nanoseconds
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.test.runBlockingTest
 import kotlinx.coroutines.yield
 import org.junit.Test
@@ -56,7 +59,7 @@ class LoopTest {
         )
 
         val channel = Channel<Int>(dataCount)
-        val job = loop.subscribeTo(channel, this)
+        val job = loop.subscribeTo(channel.receiveAsFlow(), this)
         assertNotNull(job)
 
         repeat(dataCount) {
@@ -67,6 +70,71 @@ class LoopTest {
 
         job.joinTest()
         assertTrue { dataCount == resultCount.get() }
+    }
+
+    @Test(timeout = 200)
+    @SmallTest
+    @ExperimentalCoroutinesApi
+    fun processBoundAnalyzerLoop_analyzeDataNoDuplicates() = runBlockingTest {
+        val dataCount = 3
+        var resultCount = 0
+
+        val dataProcessMutex = Mutex()
+        val dataToProcess = mutableMapOf<Int, Boolean>()
+        repeat(dataCount) {
+            dataToProcess[it] = false
+        }
+
+        class TestResultHandler : StateUpdatingResultHandler<Int, LoopState<Int>, String> {
+            override suspend fun onResult(
+                result: String,
+                state: LoopState<Int>,
+                data: Int,
+                updateState: (LoopState<Int>) -> Unit
+            ) {
+                dataProcessMutex.withLock {
+                    resultCount++
+                    assertEquals(1, state.state)
+                    assertTrue { dataToProcess[data] == false }
+                    dataToProcess[data] = true
+                    if (resultCount >= dataCount) {
+                        updateState(state.copy(finished = true))
+                    }
+                }
+            }
+        }
+
+        val analyzerPool = AnalyzerPoolFactory(
+            analyzerFactory = TestAnalyzerFactory(),
+            desiredAnalyzerCount = 12
+        ).buildAnalyzerPool()
+
+        val loop = ProcessBoundAnalyzerLoop(
+            analyzerPool = analyzerPool,
+            onAnalyzerFailure = { fail() },
+            onResultFailure = { fail() },
+            initialState = 1,
+            name = "TestAnalyzerLoop",
+            resultHandler = TestResultHandler()
+        )
+
+        val channel = Channel<Int>(dataCount)
+        val job = loop.subscribeTo(channel.receiveAsFlow(), this)
+        assertNotNull(job)
+
+        repeat(dataCount) {
+            while (!channel.offer(it)) {
+                // loop until the channel accepts the data
+            }
+        }
+
+        job.joinTest()
+        val dataProcessedCount = dataProcessMutex.withLock { resultCount }
+        assertTrue { dataCount == dataProcessedCount }
+
+        repeat(dataCount) {
+            assertTrue { dataToProcess[it] == true }
+        }
     }
 
     @Test(timeout = 200)
@@ -101,7 +169,7 @@ class LoopTest {
         )
 
         val channel = Channel<Int>(Channel.RENDEZVOUS)
-        val job = loop.subscribeTo(channel, this)
+        val job = loop.subscribeTo(channel.receiveAsFlow(), this)
         assertNull(job)
         assertTrue { analyzerFailure }
     }
