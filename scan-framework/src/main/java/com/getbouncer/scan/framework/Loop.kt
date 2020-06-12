@@ -10,11 +10,11 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -72,7 +72,7 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
     private val updateState: (LoopState<State>) -> Unit = { state = it }
 
     protected fun subscribeToChannel(
-        channel: ReceiveChannel<DataFrame>,
+        flow: Flow<DataFrame>,
         processingCoroutineScope: CoroutineScope
     ): Job? {
         if (!started.getAndSet(true)) {
@@ -94,7 +94,7 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
             val workerScope = this
             analyzerPool.analyzers.forEachIndexed { index, analyzer ->
                 launch(Dispatchers.Default) {
-                    startWorker(channel, workerScope, index, analyzer)
+                    startWorker(flow, workerScope, index, analyzer)
                 }
             }
         }
@@ -104,37 +104,39 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
      * Launch a worker coroutine that has access to the analyzer's `analyze` method and the result handler
      */
     private suspend fun startWorker(
-        channel: ReceiveChannel<DataFrame>,
+        flow: Flow<DataFrame>,
         workerScope: CoroutineScope,
         workerId: Int,
         analyzer: Analyzer<DataFrame, State, Output>
     ) {
-        for (frame in channel) {
-            val stat = Stats.trackRepeatingTask("analyzer_execution:$name:${analyzer.name}")
-            measureTime {
-                try {
-                    val analyzerResult = analyzer.analyze(frame, state.state)
-
+        while (workerScope.isActive) {
+            flow.collect { frame ->
+                val stat = Stats.trackRepeatingTask("analyzer_execution:$name:${analyzer.name}")
+                measureTime {
                     try {
-                        onResult(analyzerResult, state, frame, updateState)
+                        val analyzerResult = analyzer.analyze(frame, state.state)
+
+                        try {
+                            onResult(analyzerResult, state, frame, updateState)
+                        } catch (t: Throwable) {
+                            stat.trackResult("result_failure")
+                            handleResultFailure(workerScope, t)
+                        }
                     } catch (t: Throwable) {
-                        stat.trackResult("result_failure")
-                        handleResultFailure(workerScope, t)
+                        stat.trackResult("analyzer_failure")
+                        handleAnalyzerFailure(workerScope, t)
                     }
-                } catch (t: Throwable) {
-                    stat.trackResult("analyzer_failure")
-                    handleAnalyzerFailure(workerScope, t)
                 }
-            }
 
-            cancelMutex.withLock {
-                if (state.finished && workerScope.isActive) {
-                    loopExecutionStatTracker.trackResult("success:$workerId")
-                    workerScope.cancel()
+                cancelMutex.withLock {
+                    if (state.finished && workerScope.isActive) {
+                        loopExecutionStatTracker.trackResult("success:$workerId")
+                        workerScope.cancel()
+                    }
                 }
-            }
 
-            stat.trackResult("success")
+                stat.trackResult("success")
+            }
         }
     }
 
@@ -188,8 +190,8 @@ class ProcessBoundAnalyzerLoop<DataFrame, State, Output>(
     onResultFailure,
     initialState
 ) {
-    fun subscribeTo(channel: ReceiveChannel<DataFrame>, processingCoroutineScope: CoroutineScope) =
-        subscribeToChannel(channel, processingCoroutineScope)
+    fun subscribeTo(flow: Flow<DataFrame>, processingCoroutineScope: CoroutineScope) =
+        subscribeToChannel(flow, processingCoroutineScope)
 
     override suspend fun onResult(
         result: Output,
@@ -232,7 +234,7 @@ class FiniteAnalyzerLoop<DataFrame, State, Output>(
         val channel = Channel<DataFrame>(capacity = frames.size)
         framesToProcess = frames.map { channel.offer(it) }.count { it }
         return if (framesToProcess > 0) {
-            subscribeToChannel(channel, processingCoroutineScope)
+            subscribeToChannel(channel.receiveAsFlow(), processingCoroutineScope)
         } else {
             processingCoroutineScope.launch {
                 resultHandler.onAllDataProcessed()
@@ -282,7 +284,7 @@ class FiniteAnalyzerLoop<DataFrame, State, Output>(
  *     emit(it)
  *     delay(100)
  *   }
- * }.drop().collect {
+ * }.backPressureDrop().collect {
  *   delay(1000)
  *   println(it)
  * }
@@ -291,5 +293,5 @@ class FiniteAnalyzerLoop<DataFrame, State, Output>(
  * @return a flow that only emits elements when the downstream [Flow.collect] is waiting for the next element
  */
 @ExperimentalCoroutinesApi
-fun <T> Flow<T>.backPressureDrop(): Flow<T> =
+suspend fun <T> Flow<T>.backPressureDrop(): Flow<T> =
     channelFlow { collect { offer(it) } }.buffer(capacity = Channel.RENDEZVOUS)
