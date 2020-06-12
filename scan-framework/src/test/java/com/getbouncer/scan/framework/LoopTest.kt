@@ -1,5 +1,6 @@
 package com.getbouncer.scan.framework
 
+import androidx.test.filters.MediumTest
 import androidx.test.filters.SmallTest
 import com.getbouncer.scan.framework.time.Duration
 import com.getbouncer.scan.framework.time.nanoseconds
@@ -151,8 +152,8 @@ class LoopTest {
         assertTrue(dataProcessed)
     }
 
-    @Test(timeout = 200)
-    @SmallTest
+    @Test(timeout = 1000)
+    @MediumTest
     @ExperimentalCoroutinesApi
     fun finiteAnalyzerLoop_analyzeDataTimeout() = runBlockingTest {
         val dataCount = 10000
