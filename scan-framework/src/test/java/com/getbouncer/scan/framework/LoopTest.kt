@@ -1,39 +1,43 @@
 package com.getbouncer.scan.framework
 
+import androidx.test.filters.MediumTest
 import androidx.test.filters.SmallTest
-import com.getbouncer.scan.framework.time.milliseconds
+import com.getbouncer.scan.framework.time.Duration
 import com.getbouncer.scan.framework.time.nanoseconds
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.test.runBlockingTest
 import kotlinx.coroutines.yield
 import org.junit.Test
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
 class LoopTest {
 
-    @Test(timeout = 1000)
+    @Test(timeout = 200)
     @SmallTest
     @ExperimentalCoroutinesApi
     fun processBoundAnalyzerLoop_analyzeData() = runBlockingTest {
         val dataCount = 3
         val resultCount = AtomicInteger(0)
 
-        class TestResultHandler : StateUpdatingResultHandler<Int, LoopState<Int>, Int> {
+        class TestResultHandler : StateUpdatingResultHandler<Int, LoopState<Int>, String> {
             override suspend fun onResult(
-                result: Int,
+                result: String,
                 state: LoopState<Int>,
                 data: Int,
                 updateState: (LoopState<Int>) -> Unit
             ) {
-                assertEquals(2, data)
                 assertEquals(1, state.state)
-                assertEquals(3, result)
-                resultCount.incrementAndGet()
+                val count = resultCount.incrementAndGet()
+                if (count >= dataCount) {
+                    updateState(state.copy(finished = true))
+                }
             }
         }
 
@@ -51,40 +55,34 @@ class LoopTest {
             resultHandler = TestResultHandler()
         )
 
-        val channel = Channel<Int>(capacity = Channel.RENDEZVOUS)
-        loop.subscribeTo(channel, GlobalScope)
+        val channel = Channel<Int>(dataCount)
+        val job = loop.subscribeTo(channel, this)
+        assertNotNull(job)
 
         repeat(dataCount) {
-            var processedFrame = false
-            while (!processedFrame) {
-                processedFrame = channel.offer(2)
-                yield()
+            while (!channel.offer(it)) {
+                // loop until the channel accepts the data
             }
         }
 
-        while (dataCount > resultCount.get()) {
-            yield()
-        }
-
-        assertEquals(dataCount, resultCount.get())
+        job.joinTest()
+        assertTrue { dataCount == resultCount.get() }
     }
 
-    @Test(timeout = 1000)
+    @Test(timeout = 200)
     @SmallTest
     @ExperimentalCoroutinesApi
     fun processBoundAnalyzerLoop_noAnalyzersAvailable() = runBlockingTest {
         var analyzerFailure = false
 
-        class TestResultHandler : StateUpdatingResultHandler<Int, LoopState<Int>, Int> {
+        class TestResultHandler : StateUpdatingResultHandler<Int, LoopState<Int>, String> {
             override suspend fun onResult(
-                result: Int,
+                result: String,
                 state: LoopState<Int>,
                 data: Int,
                 updateState: (LoopState<Int>) -> Unit
             ) {
-                assertEquals(2, data)
                 assertEquals(1, state.state)
-                assertEquals(3, result)
             }
         }
 
@@ -102,12 +100,10 @@ class LoopTest {
             resultHandler = TestResultHandler()
         )
 
-        val channel = Channel<Int>(capacity = Channel.RENDEZVOUS)
-        loop.subscribeTo(channel, GlobalScope)
-
-        while (!analyzerFailure) {
-            yield()
-        }
+        val channel = Channel<Int>(Channel.RENDEZVOUS)
+        val job = loop.subscribeTo(channel, this)
+        assertNull(job)
+        assertTrue { analyzerFailure }
     }
 
     @Test(timeout = 1000)
@@ -118,12 +114,10 @@ class LoopTest {
         var dataProcessed = false
         val resultCount = AtomicInteger(0)
 
-        class TestResultHandler : TerminatingResultHandler<Int, Int, Int> {
-            override suspend fun onResult(result: Int, state: Int, data: Int) {
-                resultCount.incrementAndGet()
-                assertEquals(2, data)
+        class TestResultHandler : TerminatingResultHandler<Int, Int, String> {
+            override suspend fun onResult(result: String, state: Int, data: Int) {
                 assertEquals(1, state)
-                assertEquals(3, result)
+                resultCount.incrementAndGet()
             }
 
             override suspend fun onAllDataProcessed() {
@@ -148,30 +142,27 @@ class LoopTest {
             initialState = 1,
             name = "TestAnalyzerLoop",
             resultHandler = TestResultHandler(),
-            frames = (0 until dataCount).map { 2 },
-            timeLimit = 500.milliseconds
+            timeLimit = Duration.INFINITE
         )
 
-        loop.start(GlobalScope)
+        val job = loop.process((0 until dataCount).map { 2 }, this)
+        assertNotNull(job)
+        job.joinTest()
 
-        while (!dataProcessed) {
-            yield()
-        }
+        assertTrue(dataProcessed)
     }
 
     @Test(timeout = 1000)
-    @SmallTest
+    @MediumTest
     @ExperimentalCoroutinesApi
     fun finiteAnalyzerLoop_analyzeDataTimeout() = runBlockingTest {
         val dataCount = 10000
         val resultCount = AtomicInteger(0)
         var terminatedEarly = false
 
-        class TestResultHandler : TerminatingResultHandler<Int, Int, Int> {
-            override suspend fun onResult(result: Int, state: Int, data: Int) {
-                assertEquals(2, data)
+        class TestResultHandler : TerminatingResultHandler<Int, Int, String> {
+            override suspend fun onResult(result: String, state: Int, data: Int) {
                 assertEquals(1, state)
-                assertEquals(3, result)
                 resultCount.incrementAndGet()
             }
 
@@ -197,25 +188,24 @@ class LoopTest {
             initialState = 1,
             name = "TestAnalyzerLoop",
             resultHandler = TestResultHandler(),
-            frames = (0 until dataCount).map { 2 },
             timeLimit = 1.nanoseconds
         )
 
-        loop.start(this)
+        val job = loop.process((0 until dataCount).map { 2 }, this)
+        assertNotNull(job)
+        job.joinTest()
 
-        while (!terminatedEarly) {
-            yield()
-        }
+        assertTrue { terminatedEarly }
     }
 
-    @Test(timeout = 1000)
+    @Test(timeout = 200)
     @SmallTest
     @ExperimentalCoroutinesApi
     fun finiteAnalyzerLoop_analyzeDataNoData() = runBlockingTest {
         var dataProcessed = false
 
-        class TestResultHandler : TerminatingResultHandler<Int, Int, Int> {
-            override suspend fun onResult(result: Int, state: Int, data: Int) { fail() }
+        class TestResultHandler : TerminatingResultHandler<Int, Int, String> {
+            override suspend fun onResult(result: String, state: Int, data: Int) { fail() }
 
             override suspend fun onAllDataProcessed() { dataProcessed = true }
 
@@ -234,23 +224,34 @@ class LoopTest {
             initialState = 1,
             name = "TestAnalyzerLoop",
             resultHandler = TestResultHandler(),
-            frames = emptyList(),
-            timeLimit = 500.milliseconds
+            timeLimit = Duration.INFINITE
         )
 
-        loop.start(this)
+        val job = loop.process(emptyList(), this)
+        assertNotNull(job)
+        job.joinTest()
 
-        while (!dataProcessed) {
-            yield()
-        }
+        assertTrue { dataProcessed }
     }
 
-    private class TestAnalyzer : Analyzer<Int, Int, Int> {
+    private class TestAnalyzer : Analyzer<Int, Int, String> {
+        companion object {
+            private val analyzerCounter = AtomicInteger(0)
+        }
+
         override val name: String = "TestAnalyzer"
-        override suspend fun analyze(data: Int, state: Int): Int = data + state
+        private val analyzerNumber = analyzerCounter.getAndIncrement()
+        override suspend fun analyze(data: Int, state: Int): String = "Analyzer=$analyzerNumber, data=$data, state=$state"
     }
 
     private class TestAnalyzerFactory : AnalyzerFactory<TestAnalyzer> {
         override suspend fun newInstance(): TestAnalyzer? = TestAnalyzer()
+    }
+
+    private suspend fun Job.joinTest() {
+        while (!isCompleted) {
+            yield()
+        }
+        join()
     }
 }

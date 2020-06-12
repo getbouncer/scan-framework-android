@@ -94,15 +94,11 @@ class MyDataProcessor : CoroutineScope, ResultHandler<MyData, Unit, MyAnalyzerOu
     private val analyzerPool = AnalyzerPool.Factory(MyAnalyzerFactory(), 4)
     private val resultHandler = MyResultHandler(this)
     private val loop: AnalyzerLoop<MyData, Unit, MyAnalyzerOutput> by lazy {
-        ProcessBoundAnalyzerLoop(analyzerPool, resultHandler, Unit, "my_loop")
+        ProcessBoundAnalyzerLoop(analyzerPool, resultHandler, Unit, "my_loop", { true }, { true })
     }
     
-    fun start() {
-        loop.start()
-    }
-    
-    fun onReceiveData(data: MyData) {
-        loop.processFrame(data)
+    fun subscribeTo(channel: ReceiveChannel<MyData>) {
+        loop.subscribeTo(channel)
     }
     
     fun onResult(result: MyAnalyzerOutput, state: Unit, data: MyData) {
@@ -129,8 +125,6 @@ class MyAnalyzer : Analyzer<MyData, Unit, MyAnalyzerOutput> {
 }
 
 class MyAnalyzerFactory : AnalyzerFactory<MyAnalyzer> {
-    override val isThreadSafe: Boolean = true
-    
     override fun newInstance(): Analyzer? = MyAnalyzer()
 }
 ```
@@ -151,18 +145,21 @@ class MyDataProcessor(dataToProcess: List<MyData>) : CoroutineScope, Terminating
             analyzerPool = analyzerPool,
             resultHandler = this,
             initialState = Unit,
-            events = this.events(),
             name = "loop_name",
             onAnalyzerFailure = {
-                runOnUiThread { analyzerFailure(it) }
+                launch(Dispatchers.Main) { analyzerFailure(it) }
                 true // terminate the loop on any analyzer failures
+            },
+            onResultFailure = {
+                launch(Dispatchers.Main) { analyzerFailure(it) }
+                true // terminate the loop on any result handler failures
             },
             timeLimit = 10.seconds
         )
     }
     
-    fun start() {
-        loop.start()
+    fun processData() {
+        loop.start(this)
     }
     
     override fun onResult(result: MyAnalyzerOutput, state: Unit, data: MyData) {
@@ -175,72 +172,6 @@ class MyDataProcessor(dataToProcess: List<MyData>) : CoroutineScope, Terminating
 
     override fun onTerminatedEarly() {
         // Notify that not all data was processed
-    }
-
-    private fun analyzerFailure(cause: Throwable?) {
-        // Notify that the data processing failed
-    }
-}
-```
-
-### Processing images from a camera
-
-Let's look at an example where we process images from a camera in the format of `PreviewImage` until a `PaymentCardImageResultAggregator` determines a final `OcrPaymentCard` result.
-
-```kotlin
-class MyCameraAnalyzer : CoroutineScope, AggregateResultListener<PreviewImage, Unit, OcrPaymentCard, PaymentCard> {
-
-    override val coroutineContext: CoroutineContext = Dispatchers.Default
-
-    private val analyzerLoader = SSDOcr.ModelLoader(this)
-    private val analyzerFactory = SSDOcr.Factory(this, analyzerLoader)
-    private val analyzerPool = AnalyzerPool(analyzerFactory)
-
-    private val resultHandler = PaymentCardImageResultAggregator(
-        config = ResultAggregatorConfig.Builder().build(),
-        events = this.events(),
-        listener = this
-    )
-
-    private val loop: AnalyzerLoop<PreviewImage, Unit, OcrPaymentCard> by lazy {
-        ProcessBoundAnalyzerLoop(
-            analyzerPool = analyzerPool,
-            resultHandler = resultHandler,
-            initialState = Unit,
-            events = this.events(),
-            name = "analyzer_loop",
-            onAnalyzerFailure = {
-                runOnUiThread { analyzerFailure(it) }
-                true // terminate the loop on any analyzer failures
-            }
-        )
-    }
-    
-    fun startAnalyzing() {
-        loop.start()
-    }
-
-    fun onCameraFrame(frame: PreviewImage) {
-        loop.processFrame(frame)
-    }
-    
-    /*
-     * The following methods are part of the [AggregateResultListener]. 
-     */
-    override fun onResult(result: PaymentCard, frames: Map<String, List<SavedFrame<PreviewImage, Unit, OcrPaymentCard>>>) {
-        // do something with the final result.
-    }
-    
-    override fun onInterimResult(result: OcrPaymentCard, state: Unit, frame: PreviewImage, isFirstValidResult: Boolean) {
-        // do something with an interim result.
-    }
-    
-    override fun onInvalidResult(result: OcrPaymentCard, state: Unit, frame: PreviewImage, hasPreviousValidResult: Boolean) {
-        // do something with an invalid result.
-    }
-    
-    override fun onUpdateProcessingRate(overallRate: Rate, instantRate: Rate) {
-        // do something with the processing rate.
     }
 
     private fun analyzerFailure(cause: Throwable?) {

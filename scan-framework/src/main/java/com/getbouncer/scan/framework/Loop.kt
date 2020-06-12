@@ -6,8 +6,15 @@ import com.getbouncer.scan.framework.time.Duration
 import com.getbouncer.scan.framework.time.measureTime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.buffer
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -24,6 +31,8 @@ data class LoopState<State>(
 )
 
 object NoAnalyzersAvailableException : Exception()
+
+object AlreadySubscribedException : Exception()
 
 /**
  * A loop to execute repeated analysis. The loop uses coroutines to run the [Analyzer.analyze] method. If the [Analyzer]
@@ -62,14 +71,15 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
 
     private val updateState: (LoopState<State>) -> Unit = { state = it }
 
-    internal fun subscribeToChannel(
-        channel: Channel<DataFrame>,
+    protected fun subscribeToChannel(
+        channel: ReceiveChannel<DataFrame>,
         processingCoroutineScope: CoroutineScope
-    ) {
+    ): Job? {
         if (!started.getAndSet(true)) {
             updateState(state.copy(startedAt = Clock.markNow()))
         } else {
-            return
+            onAnalyzerFailure(AlreadySubscribedException)
+            return null
         }
 
         loopExecutionStatTracker = Stats.trackTask("loop_execution:$name")
@@ -77,10 +87,10 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
         if (analyzerPool.analyzers.isEmpty()) {
             runBlocking { loopExecutionStatTracker.trackResult("canceled") }
             onAnalyzerFailure(NoAnalyzersAvailableException)
-            return
+            return null
         }
 
-        processingCoroutineScope.launch {
+        return processingCoroutineScope.launch {
             val workerScope = this
             analyzerPool.analyzers.forEachIndexed { index, analyzer ->
                 launch(Dispatchers.Default) {
@@ -94,7 +104,7 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
      * Launch a worker coroutine that has access to the analyzer's `analyze` method and the result handler
      */
     private suspend fun startWorker(
-        channel: Channel<DataFrame>,
+        channel: ReceiveChannel<DataFrame>,
         workerScope: CoroutineScope,
         workerId: Int,
         analyzer: Analyzer<DataFrame, State, Output>
@@ -178,9 +188,8 @@ class ProcessBoundAnalyzerLoop<DataFrame, State, Output>(
     onResultFailure,
     initialState
 ) {
-    fun subscribeTo(channel: Channel<DataFrame>, processingCoroutineScope: CoroutineScope) {
+    fun subscribeTo(channel: ReceiveChannel<DataFrame>, processingCoroutineScope: CoroutineScope) =
         subscribeToChannel(channel, processingCoroutineScope)
-    }
 
     override suspend fun onResult(
         result: Output,
@@ -194,7 +203,6 @@ class ProcessBoundAnalyzerLoop<DataFrame, State, Output>(
  * This kind of [AnalyzerLoop] will process data provided as part of its constructor. Data will be processed in the
  * order provided.
  *
- * @param frames: The list of data frames this loop will process.
  * @param analyzerPool: A pool of analyzers to use in this loop.
  * @param resultHandler: A result handler that will be called with the results from the analyzers in this loop.
  * @param name: The name of this loop for stat and event tracking.
@@ -204,7 +212,6 @@ class ProcessBoundAnalyzerLoop<DataFrame, State, Output>(
  *     exceeds this duration, the loop will terminate
  */
 class FiniteAnalyzerLoop<DataFrame, State, Output>(
-    private val frames: Collection<DataFrame>,
     analyzerPool: AnalyzerPool<DataFrame, State, Output>,
     private val resultHandler: TerminatingResultHandler<DataFrame, State, Output>,
     initialState: State,
@@ -219,12 +226,13 @@ class FiniteAnalyzerLoop<DataFrame, State, Output>(
     initialState
 ) {
     private val framesProcessed: AtomicInteger = AtomicInteger(0)
+    private var framesToProcess = 0
 
-    fun start(processingCoroutineScope: CoroutineScope) {
+    fun process(frames: Collection<DataFrame>, processingCoroutineScope: CoroutineScope): Job? {
         val channel = Channel<DataFrame>(capacity = frames.size)
-        val hasFramesToProcess = frames.map { channel.offer(it) }.any()
-        if (hasFramesToProcess) {
-            super.subscribeToChannel(channel, processingCoroutineScope)
+        framesToProcess = frames.map { channel.offer(it) }.count { it }
+        return if (framesToProcess > 0) {
+            subscribeToChannel(channel, processingCoroutineScope)
         } else {
             processingCoroutineScope.launch {
                 resultHandler.onAllDataProcessed()
@@ -242,7 +250,7 @@ class FiniteAnalyzerLoop<DataFrame, State, Output>(
         val timeElapsed = state.startedAt?.elapsedSince() ?: Duration.ZERO
         resultHandler.onResult(result, state.state, data)
 
-        if (framesProcessed >= frames.size) {
+        if (framesProcessed >= framesToProcess) {
             resultHandler.onAllDataProcessed()
         } else if (timeElapsed > timeLimit) {
             resultHandler.onTerminatedEarly()
@@ -255,9 +263,33 @@ class FiniteAnalyzerLoop<DataFrame, State, Output>(
 
     private fun isFinished(state: LoopState<State>): Boolean {
         val timeElapsed = state.startedAt?.elapsedSince() ?: Duration.ZERO
-        val allFramesProcessed = framesProcessed.get() >= frames.size
+        val allFramesProcessed = framesProcessed.get() >= framesToProcess
         val exceededTimeLimit = timeElapsed > timeLimit
 
         return allFramesProcessed || exceededTimeLimit
     }
 }
+
+/**
+ * Consume this [Flow] using a channelFlow with no buffer. Elements emitted from [this] flow
+ * are offered to the underlying [channelFlow]. If the consumer is not currently suspended and
+ * waiting for the next element, the element is dropped.
+ *
+ * example:
+ * ```
+ * flow {
+ *   (0..100).forEach {
+ *     emit(it)
+ *     delay(100)
+ *   }
+ * }.drop().collect {
+ *   delay(1000)
+ *   println(it)
+ * }
+ * ```
+ *
+ * @return a flow that only emits elements when the downstream [Flow.collect] is waiting for the next element
+ */
+@ExperimentalCoroutinesApi
+fun <T> Flow<T>.backPressureDrop(): Flow<T> =
+    channelFlow { collect { offer(it) } }.buffer(capacity = Channel.RENDEZVOUS)
