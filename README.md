@@ -71,11 +71,18 @@ class MyAnalyzerFactory : AnalyzerFactory<MyAnalyzer> {
 
 Then, create a result handler to aggregate multiple outputs into one, and indicate when processing should cease.
 ```kotlin
-class MyResultHandler(listener: ResultHanlder<MyData, Unit, MyAnalyzerOutput>) : StateUpdatingResultHandler<MyData, LoopState<Unit>, MyAnalyzerOutput>() {
+class MyResultHandler(listener: ResultHanlder<MyData, Unit, MyAnalyzerOutput>) :
+    StateUpdatingResultHandler<MyData, LoopState<Unit>, MyAnalyzerOutput>() {
+
     private var resultsReceived = 0
     private var totalResult = 0
     
-    override suspend fun onResult(result: MyAnalyzerOutput, state: LoopState<Unit>, data: MyData, updateState: (LoopState<Unit>) -> Unit) {
+    override suspend fun onResult(
+        result: MyAnalyzerOutput,
+        state: LoopState<Unit>,
+        data: MyData,
+        updateState: (LoopState<Unit>) -> Unit
+    ) {
         resultsReceived++
         if (resultsReceived > 10) {
             updateState(state.copy(finished = true))
@@ -93,12 +100,12 @@ class MyDataProcessor : CoroutineScope, ResultHandler<MyData, Unit, MyAnalyzerOu
 
     private val analyzerPool = AnalyzerPool.Factory(MyAnalyzerFactory(), 4)
     private val resultHandler = MyResultHandler(this)
-    private val loop: AnalyzerLoop<MyData, Unit, MyAnalyzerOutput> by lazy {
+    private val loop by lazy {
         ProcessBoundAnalyzerLoop(analyzerPool, resultHandler, Unit, "my_loop", { true }, { true })
     }
     
-    fun subscribeTo(channel: ReceiveChannel<MyData>) {
-        loop.subscribeTo(channel)
+    fun subscribeTo(flow: Flow<MyData>) {
+        loop.subscribeTo(flow, this)
     }
     
     fun onResult(result: MyAnalyzerOutput, state: Unit, data: MyData) {
@@ -131,7 +138,7 @@ class MyAnalyzerFactory : AnalyzerFactory<MyAnalyzer> {
 
 Finally, tie it all together with a class that processes the data and does something with the results.
 ```kotlin
-class MyDataProcessor(dataToProcess: List<MyData>) : CoroutineScope, TerminatingResultHandler<MyData, Unit, MyAnalyzerOutput> {
+class MyDataProcessor : CoroutineScope, TerminatingResultHandler<MyData, Unit, MyAnalyzerOutput> {
 
     override val coroutineContext: CoroutineContext = Dispatchers.Default
 
@@ -141,7 +148,6 @@ class MyDataProcessor(dataToProcess: List<MyData>) : CoroutineScope, Terminating
 
     private val loop: AnalyzerLoop<MyData, Unit, MyAnalyzerOutput> by lazy {
         FiniteAnalyzerLoop(
-            frames = dataToProcess,
             analyzerPool = analyzerPool,
             resultHandler = this,
             initialState = Unit,
@@ -158,8 +164,8 @@ class MyDataProcessor(dataToProcess: List<MyData>) : CoroutineScope, Terminating
         )
     }
     
-    fun processData() {
-        loop.start(this)
+    fun processData(data: List<MyData>) {
+        loop.process(data, this)
     }
     
     override fun onResult(result: MyAnalyzerOutput, state: Unit, data: MyData) {
