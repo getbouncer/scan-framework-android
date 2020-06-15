@@ -1,11 +1,13 @@
 # Changelog
 
-## [2.0.0012](https://github.com/getbouncer/scan-framework-android/tree/2.0.0012) (2020-06-11)
+## [2.0.0012](https://github.com/getbouncer/scan-framework-android/tree/2.0.0012) (2020-06-15)
 
 [Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0011...2.0.0012)
 
 **Merged pull requests:**
 
+- Use flows instead of channels [\#42](https://github.com/getbouncer/scan-framework-android/pull/42) ([awushensky](https://github.com/awushensky))
+- Use channels better [\#41](https://github.com/getbouncer/scan-framework-android/pull/41) ([awushensky](https://github.com/awushensky))
 - Fix framerate average calculation [\#40](https://github.com/getbouncer/scan-framework-android/pull/40) ([awushensky](https://github.com/awushensky))
 - Make result handlers listen to a lifecycle [\#39](https://github.com/getbouncer/scan-framework-android/pull/39) ([awushensky](https://github.com/awushensky))
 - Move images out of framework [\#38](https://github.com/getbouncer/scan-framework-android/pull/38) ([awushensky](https://github.com/awushensky))
