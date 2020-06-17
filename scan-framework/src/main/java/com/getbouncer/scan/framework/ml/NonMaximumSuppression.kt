@@ -37,10 +37,7 @@ fun hardNonMaximumSuppression(
 
         val iterator = indexArray.iterator()
         while (iterator.hasNext()) {
-            if (intersectionOverUnionOf(
-                    boxes[current],
-                    boxes[iterator.next()]
-                ) >= iouThreshold) {
+            if (intersectionOverUnionOf(boxes[current],boxes[iterator.next()]) >= iouThreshold) {
                 iterator.remove()
             }
         }
