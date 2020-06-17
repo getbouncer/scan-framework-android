@@ -1,6 +1,7 @@
 package com.getbouncer.scan.framework.util
 
 import android.graphics.Rect
+import android.graphics.RectF
 import android.util.Size
 import androidx.annotation.CheckResult
 import kotlin.math.min
@@ -61,3 +62,23 @@ fun Size.scaleAndCenterWithin(containingSize: Size): Rect {
         /* bottom */ top + scaledSize.height
     )
 }
+
+fun RectF.scaled(scaledSize: Size): RectF {
+    return RectF(
+        this.left * scaledSize.width,
+        this.top * scaledSize.height,
+        this.right * scaledSize.width,
+        this.bottom * scaledSize.height
+    )
+}
+
+fun RectF.centerScaled(scaleX: Float, scaleY: Float): RectF {
+    return RectF(
+        this.centerX() - this.width() * scaleX / 2,
+        this.centerY() - this.height() * scaleY / 2,
+        this.centerX() + this.width() * scaleX / 2,
+        this.centerY() + this.height() * scaleY / 2
+    )
+}
+
+fun Rect.size() = Size(width(), height())
