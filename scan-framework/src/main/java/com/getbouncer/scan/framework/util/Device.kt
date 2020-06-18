@@ -20,18 +20,22 @@ data class Device(
     val platform: String
 ) {
     companion object {
-        fun fromContext(context: Context) = Device(
-            ids = DeviceIds.fromContext(context),
-            name = getDeviceName(),
-            bootCount = getDeviceBootCount(context),
-            locale = getDeviceLocale(),
-            carrier = getDeviceCarrier(context),
-            networkOperator = getNetworkOperator(context),
-            phoneType = getDevicePhoneType(context),
-            phoneCount = getDevicePhoneCount(context),
-            osVersion = getOsVersion(),
-            platform = getPlatform()
-        )
+        private val getDeviceDetails = memoize { context: Context ->
+            Device(
+                ids = DeviceIds.fromContext(context),
+                name = getDeviceName(),
+                bootCount = getDeviceBootCount(context),
+                locale = getDeviceLocale(),
+                carrier = getDeviceCarrier(context),
+                networkOperator = getNetworkOperator(context),
+                phoneType = getDevicePhoneType(context),
+                phoneCount = getDevicePhoneCount(context),
+                osVersion = getOsVersion(),
+                platform = getPlatform()
+            )
+        }
+
+        fun fromContext(context: Context) = getDeviceDetails(context.applicationContext)
     }
 }
 
@@ -39,9 +43,13 @@ data class DeviceIds(
     val androidId: String?
 ) {
     companion object {
-        fun fromContext(context: Context) = DeviceIds(
-            androidId = getAndroidId(context)
-        )
+        private val getDeviceIds = memoize { context: Context ->
+            DeviceIds(
+                androidId = getAndroidId(context)
+            )
+        }
+
+        fun fromContext(context: Context) = getDeviceIds(context.applicationContext)
     }
 }
 
@@ -88,9 +96,9 @@ private fun getDevicePhoneCount(context: Context) =
 private fun getNetworkOperator(context: Context) =
     (context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager?)?.networkOperator
 
-private fun getOsVersion() = Build.VERSION.SDK_INT
+fun getOsVersion() = Build.VERSION.SDK_INT
 
-private fun getPlatform() = "android"
+fun getPlatform() = "android"
 
 /**
  * from https://stackoverflow.com/a/27836910/947883

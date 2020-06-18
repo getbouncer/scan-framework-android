@@ -1,5 +1,6 @@
 package com.getbouncer.scan.framework
 
+import android.content.Context
 import com.getbouncer.scan.framework.exception.InvalidBouncerApiKeyException
 import com.getbouncer.scan.framework.time.Duration
 import com.getbouncer.scan.framework.time.seconds
@@ -45,6 +46,29 @@ object Config {
      */
     @JvmStatic
     val trackStats: Boolean = true
+
+    /**
+     * The application context. If [initialize] has not been called, this will be null.
+     */
+    var applicationContext: Context? = null
+        private set
+
+    /**
+     * Get the application context. This must be pre-initialized.
+     */
+    fun getAppContext(): Context = applicationContext.let {
+        checkNotNull(it) { "Config.initialize was not called." }
+        it
+    }
+
+    /**
+     *
+     */
+    @JvmStatic
+    fun initialize(context: Context, apiKey: String) {
+        this.apiKey = apiKey
+        this.applicationContext = context.applicationContext
+    }
 }
 
 object NetworkConfig {

@@ -1,12 +1,19 @@
 @file:JvmName("Network")
 package com.getbouncer.scan.framework.api
 
+import android.content.Context
+import android.util.Base64
 import android.util.Log
 import com.getbouncer.scan.framework.Config
 import com.getbouncer.scan.framework.NetworkConfig
 import com.getbouncer.scan.framework.time.Timer
+import com.getbouncer.scan.framework.util.DeviceIds
+import com.getbouncer.scan.framework.util.getOsVersion
+import com.getbouncer.scan.framework.util.getPlatform
+import com.getbouncer.scan.framework.util.memoize
 import com.getbouncer.scan.framework.util.retry
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
 import java.io.InputStreamReader
 import java.io.OutputStream
 import java.io.OutputStreamWriter
@@ -18,6 +25,8 @@ private const val REQUEST_METHOD_GET = "GET"
 private const val REQUEST_METHOD_POST = "POST"
 
 private const val REQUEST_PROPERTY_AUTHENTICATION = "x-bouncer-auth"
+private const val REQUEST_PROPERTY_DEVICE_ID = "x-bouncer-device-id"
+private const val REQUEST_PROPERTY_USER_AGENT = "User-Agent"
 private const val REQUEST_PROPERTY_CONTENT_TYPE = "Content-Type"
 private const val REQUEST_PROPERTY_CONTENT_ENCODING = "Content-Encoding"
 
@@ -30,6 +39,8 @@ private const val CONTENT_ENCODING_GZIP = "gzip"
 private const val GZIP_MIN_SIZE_BYTES = 1500
 
 private val networkTimer by lazy { Timer.newInstance(Config.logTag, "network") }
+
+private val userAgent by lazy { "bouncer/${getPlatform()}/${getOsVersion()}" }
 
 /**
  * Send a post request to a bouncer endpoint.
@@ -171,7 +182,7 @@ private fun postJson(
             doInput = true
 
             // Set headers
-            setRequestProperty(REQUEST_PROPERTY_AUTHENTICATION, Config.apiKey)
+            setRequestHeaders()
             setRequestProperty(REQUEST_PROPERTY_CONTENT_TYPE, CONTENT_TYPE_JSON)
 
             // Write the data
@@ -226,7 +237,7 @@ private fun get(path: String): NetworkResult<String, String> = networkTimer.meas
             doInput = true
 
             // Set headers
-            setRequestProperty(REQUEST_PROPERTY_AUTHENTICATION, Config.apiKey)
+            setRequestHeaders()
 
             // Read the response code. This will block until the response has been received.
             responseCode = this.responseCode
@@ -246,6 +257,47 @@ private fun get(path: String): NetworkResult<String, String> = networkTimer.meas
     } catch (t: Throwable) {
         Log.w(Config.logTag, "Failed network request to endpoint $url", t)
         NetworkResult.Exception(responseCode, t)
+    }
+}
+
+/**
+ * Set the required request headers on an HttpURLConnection
+ */
+private fun HttpURLConnection.setRequestHeaders() {
+    setRequestProperty(REQUEST_PROPERTY_AUTHENTICATION, Config.apiKey)
+    setRequestProperty(REQUEST_PROPERTY_USER_AGENT, userAgent)
+    Config.applicationContext?.apply {
+        setRequestProperty(REQUEST_PROPERTY_DEVICE_ID, buildDeviceId(this))
+    }
+}
+
+@Serializable
+private data class DeviceIdStructure(
+    /**
+     * android_id
+     */
+    val a: String,
+
+    /**
+     * vendor_id
+     */
+    val v: String,
+
+    /**
+     * advertising_id
+     */
+    val d: String
+)
+
+private val buildDeviceId = memoize { context: Context ->
+    DeviceIds.fromContext(context).run {
+        Base64.encodeToString(
+            Config.json.stringify(
+                DeviceIdStructure.serializer(),
+                DeviceIdStructure(a = androidId ?: "", v = "", d = "")
+            ).toByteArray(Charsets.UTF_8),
+            Base64.URL_SAFE
+        )
     }
 }
 
