@@ -23,24 +23,27 @@ import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.test.fail
 
-class BouncerApiAndroidTest {
+class BouncerApiTest {
 
     companion object {
         private const val STATS_PATH = "/scan_stats"
     }
 
     private val testContext = InstrumentationRegistry.getInstrumentation().context
+    private val appContext = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Before
     fun before() {
-        Config.apiKey = "uXDc2sbugrkmvj1Bm3xOTXBw7NW4llgn"
+        Config.initialize(appContext, "uXDc2sbugrkmvj1Bm3xOTXBw7NW4llgn")
     }
 
     @After
     fun after() {
-        Config.apiKey = null
+        Config.initialize(appContext, "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456")
     }
 
     @Test
@@ -95,6 +98,8 @@ class BouncerApiAndroidTest {
         when (val result = com.getbouncer.scan.framework.api.validateApiKey()) {
             is NetworkResult.Success<ValidateApiKeyResponse, BouncerErrorResponse> -> {
                 assertEquals(200, result.responseCode)
+                assertTrue(result.body.isApiKeyValid)
+                assertNull(result.body.keyInvalidReason)
             }
             else -> fail("network result was not success: $result")
         }

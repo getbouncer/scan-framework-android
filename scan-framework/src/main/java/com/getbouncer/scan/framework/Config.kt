@@ -16,6 +16,7 @@ object Config {
      */
     @JvmStatic
     var isDebug: Boolean = false
+        private set
 
     /**
      * A log tag used by this library.
@@ -28,7 +29,7 @@ object Config {
      */
     @JvmStatic
     var apiKey: String? = null
-        set(value) {
+        private set(value) {
             if (value != null && value.length != REQUIRED_API_KEY_LENGTH) {
                 throw InvalidBouncerApiKeyException
             }
@@ -65,8 +66,10 @@ object Config {
      *
      */
     @JvmStatic
-    fun initialize(context: Context, apiKey: String) {
+    @JvmOverloads
+    fun initialize(context: Context, apiKey: String, debug: Boolean = this.isDebug) {
         this.apiKey = apiKey
+        this.isDebug = debug
         this.applicationContext = context.applicationContext
     }
 }
