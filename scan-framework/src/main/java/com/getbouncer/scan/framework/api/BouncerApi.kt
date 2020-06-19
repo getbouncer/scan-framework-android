@@ -28,7 +28,10 @@ const val ERROR_CODE_NOT_AUTHENTICATED = "not_authenticated"
 fun uploadScanStats(
     context: Context,
     instanceId: String,
-    scanId: String?
+    scanId: String?,
+    device: Device,
+    appDetails: AppDetails,
+    scanStatistics: ScanStatistics
 ) = GlobalScope.launch(Dispatchers.IO) {
     postData(
         context = context,
@@ -36,9 +39,9 @@ fun uploadScanStats(
         data = StatsPayload(
             instanceId = instanceId,
             scanId = scanId,
-            device = ClientDevice.fromDevice(Device.fromContext(context)),
-            app = AppInfo.fromAppDetails(AppDetails.fromContext(context)),
-            scanStats = ScanStatistics.fromStats()
+            device = ClientDevice.fromDevice(device),
+            app = AppInfo.fromAppDetails(appDetails),
+            scanStats = scanStatistics
         ),
         requestSerializer = StatsPayload.serializer()
     )
