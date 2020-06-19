@@ -66,6 +66,25 @@ suspend fun <Request, Response, Error> postForResult(
         errorSerializer = errorSerializer
     )
 
+/**
+ * Send a post request to a bouncer endpoint and ignore the response.
+ */
+suspend fun <Request> postData(
+    context: Context,
+    path: String,
+    data: Request,
+    requestSerializer: KSerializer<Request>
+) {
+    postJsonWithRetries(
+        context = context,
+        path = path,
+        jsonData = Config.json.stringify(requestSerializer, data)
+    )
+}
+
+/**
+ * Send a get request to a bouncer endpoint and parse the response.
+ */
 suspend fun <Response, Error> getForResult(
     context: Context,
     path: String,
@@ -112,22 +131,6 @@ private fun <Response, Error> translateNetworkResult(
             responseCode = networkResult.responseCode,
             exception = networkResult.exception
         )
-}
-
-/**
- * Send a post request to a bouncer endpoint and ignore the response.
- */
-suspend fun <Request> postData(
-    context: Context,
-    path: String,
-    data: Request,
-    requestSerializer: KSerializer<Request>
-) {
-    postJsonWithRetries(
-        context = context,
-        path = path,
-        jsonData = Config.json.stringify(requestSerializer, data)
-    )
 }
 
 /**
