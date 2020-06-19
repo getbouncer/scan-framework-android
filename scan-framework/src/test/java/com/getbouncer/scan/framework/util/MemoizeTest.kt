@@ -387,15 +387,14 @@ class MemoizeTest {
 
         val memoizedFunction = testFunction.memoizedSuspend()
 
-
-        val result1 = testFunction.invoke(1, 2, 3)
-        val result2 = testFunction.invoke(1, 2, 3)
-        val result3 = testFunction.invoke(1, 2, 3)
-        val result4 = testFunction.invoke(1, 3, 4)
-        val result5 = testFunction.invoke(2, 2, 5)
-        val result6 = testFunction.invoke(4, 5, 6)
-        val result7 = testFunction.invoke(1, 2, 7)
-        val result8 = testFunction.invoke(1, 2, 3)
+        val result1 = memoizedFunction.invoke(1, 2, 3)
+        val result2 = memoizedFunction.invoke(1, 2, 3)
+        val result3 = memoizedFunction.invoke(1, 2, 3)
+        val result4 = memoizedFunction.invoke(1, 3, 4)
+        val result5 = memoizedFunction.invoke(2, 2, 5)
+        val result6 = memoizedFunction.invoke(4, 5, 6)
+        val result7 = memoizedFunction.invoke(1, 2, 7)
+        val result8 = memoizedFunction.invoke(1, 2, 3)
 
         assertTrue { result1 }
         assertTrue { result2 }
