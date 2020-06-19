@@ -31,10 +31,10 @@ private fun getApplicationId(): String = "" // no longer available in later vers
 
 private fun getLibraryPackageName(): String = BuildConfig.LIBRARY_PACKAGE_NAME
 
-private fun getSdkVersion(): String = BuildConfig.VERSION_NAME
+fun getSdkVersion(): String = BuildConfig.VERSION_NAME
 
 private fun getSdkVersionCode(): Int = BuildConfig.VERSION_CODE
 
-private fun getSdkFlavor(): String = BuildConfig.BUILD_TYPE
+fun getSdkFlavor(): String = BuildConfig.BUILD_TYPE
 
 private fun isDebugBuild(): Boolean = BuildConfig.DEBUG

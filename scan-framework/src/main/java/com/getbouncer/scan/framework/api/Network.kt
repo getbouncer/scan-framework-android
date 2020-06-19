@@ -8,8 +8,11 @@ import com.getbouncer.scan.framework.Config
 import com.getbouncer.scan.framework.NetworkConfig
 import com.getbouncer.scan.framework.time.Timer
 import com.getbouncer.scan.framework.util.DeviceIds
+import com.getbouncer.scan.framework.util.getDeviceName
 import com.getbouncer.scan.framework.util.getOsVersion
 import com.getbouncer.scan.framework.util.getPlatform
+import com.getbouncer.scan.framework.util.getSdkFlavor
+import com.getbouncer.scan.framework.util.getSdkVersion
 import com.getbouncer.scan.framework.util.memoize
 import com.getbouncer.scan.framework.util.retry
 import kotlinx.serialization.KSerializer
@@ -40,7 +43,7 @@ private const val GZIP_MIN_SIZE_BYTES = 1500
 
 private val networkTimer by lazy { Timer.newInstance(Config.logTag, "network") }
 
-private val userAgent by lazy { "bouncer/${getPlatform()}/${getOsVersion()}" }
+private val userAgent by lazy { "bouncer/${getPlatform()}/${getDeviceName()}/${getOsVersion()}/${getSdkVersion()}/${getSdkFlavor()}" }
 
 /**
  * Send a post request to a bouncer endpoint.
