@@ -212,7 +212,7 @@ abstract class ModelWebLoader(context: Context) : WebLoader(context) {
 
     override val url: URL by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         when (
-            val signedUrlResponse = runBlocking { getModelSignedUrl(modelClass, modelVersion, modelFileName) }
+            val signedUrlResponse = runBlocking { getModelSignedUrl(context, modelClass, modelVersion, modelFileName) }
         ) {
             is NetworkResult.Success<ModelSignedUrlResponse, BouncerErrorResponse> ->
                 URL(signedUrlResponse.body.modelUrl)

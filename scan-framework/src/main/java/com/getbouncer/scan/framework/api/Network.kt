@@ -49,6 +49,7 @@ private val userAgent by lazy { "bouncer/${getPlatform()}/${getDeviceName()}/${g
  * Send a post request to a bouncer endpoint.
  */
 suspend fun <Request, Response, Error> postForResult(
+    context: Context,
     path: String,
     data: Request,
     requestSerializer: KSerializer<Request>,
@@ -57,6 +58,7 @@ suspend fun <Request, Response, Error> postForResult(
 ): NetworkResult<Response, Error> =
     translateNetworkResult(
         networkResult = postJsonWithRetries(
+            context = context,
             path = path,
             jsonData = Config.json.stringify(requestSerializer, data)
         ),
@@ -65,11 +67,12 @@ suspend fun <Request, Response, Error> postForResult(
     )
 
 suspend fun <Response, Error> getForResult(
+    context: Context,
     path: String,
     responseSerializer: KSerializer<Response>,
     errorSerializer: KSerializer<Error>
 ): NetworkResult<Response, Error> =
-    translateNetworkResult(getWithRetries(path), responseSerializer, errorSerializer)
+    translateNetworkResult(getWithRetries(context, path), responseSerializer, errorSerializer)
 
 /**
  * Translate a string network result to a response or error.
@@ -115,11 +118,13 @@ private fun <Response, Error> translateNetworkResult(
  * Send a post request to a bouncer endpoint and ignore the response.
  */
 suspend fun <Request> postData(
+    context: Context,
     path: String,
     data: Request,
     requestSerializer: KSerializer<Request>
 ) {
     postJsonWithRetries(
+        context = context,
         path = path,
         jsonData = Config.json.stringify(requestSerializer, data)
     )
@@ -128,13 +133,17 @@ suspend fun <Request> postData(
 /**
  * Send a post request to a bouncer endpoint with retries.
  */
-suspend fun postJsonWithRetries(path: String, jsonData: String): NetworkResult<String, String> =
+private suspend fun postJsonWithRetries(
+    context: Context,
+    path: String,
+    jsonData: String
+): NetworkResult<String, String> =
     try {
         retry(
             retryDelay = NetworkConfig.retryDelay,
             times = NetworkConfig.retryTotalAttempts
         ) {
-            val result = postJson(path, jsonData)
+            val result = postJson(context, path, jsonData)
             if (result.responseCode in NetworkConfig.retryStatusCodes) {
                 throw RetryNetworkRequestException(result)
             } else {
@@ -148,13 +157,13 @@ suspend fun postJsonWithRetries(path: String, jsonData: String): NetworkResult<S
 /**
  * Send a get request to a bouncer endpoint with retries.
  */
-suspend fun getWithRetries(path: String): NetworkResult<String, String> =
+private suspend fun getWithRetries(context: Context, path: String): NetworkResult<String, String> =
     try {
         retry(
             retryDelay = NetworkConfig.retryDelay,
             times = NetworkConfig.retryTotalAttempts
         ) {
-            val result = get(path)
+            val result = get(context, path)
             if (result.responseCode in NetworkConfig.retryStatusCodes) {
                 throw RetryNetworkRequestException(result)
             } else {
@@ -169,6 +178,7 @@ suspend fun getWithRetries(path: String): NetworkResult<String, String> =
  * Send a post request to a bouncer endpoint.
  */
 private fun postJson(
+    context: Context,
     path: String,
     jsonData: String
 ): NetworkResult<String, String> = networkTimer.measure(path) {
@@ -185,7 +195,7 @@ private fun postJson(
             doInput = true
 
             // Set headers
-            setRequestHeaders()
+            setRequestHeaders(context)
             setRequestProperty(REQUEST_PROPERTY_CONTENT_TYPE, CONTENT_TYPE_JSON)
 
             // Write the data
@@ -226,7 +236,7 @@ private fun postJson(
 /**
  * Send a get request to a bouncer endpoint.
  */
-private fun get(path: String): NetworkResult<String, String> = networkTimer.measure(path) {
+private fun get(context: Context, path: String): NetworkResult<String, String> = networkTimer.measure(path) {
     val fullPath = if (path.startsWith("/")) path else "/$path"
     val url = URL("${getBaseUrl()}$fullPath")
     var responseCode = -1
@@ -240,7 +250,7 @@ private fun get(path: String): NetworkResult<String, String> = networkTimer.meas
             doInput = true
 
             // Set headers
-            setRequestHeaders()
+            setRequestHeaders(context)
 
             // Read the response code. This will block until the response has been received.
             responseCode = this.responseCode
@@ -266,12 +276,10 @@ private fun get(path: String): NetworkResult<String, String> = networkTimer.meas
 /**
  * Set the required request headers on an HttpURLConnection
  */
-private fun HttpURLConnection.setRequestHeaders() {
+private fun HttpURLConnection.setRequestHeaders(context: Context) {
     setRequestProperty(REQUEST_PROPERTY_AUTHENTICATION, Config.apiKey)
     setRequestProperty(REQUEST_PROPERTY_USER_AGENT, userAgent)
-    Config.applicationContext?.apply {
-        setRequestProperty(REQUEST_PROPERTY_DEVICE_ID, buildDeviceId(this))
-    }
+    setRequestProperty(REQUEST_PROPERTY_DEVICE_ID, buildDeviceId(context))
 }
 
 @Serializable

@@ -31,6 +31,7 @@ fun uploadScanStats(
     scanId: String?
 ) = GlobalScope.launch(Dispatchers.IO) {
     postData(
+        context = context,
         path = STATS_PATH,
         data = StatsPayload(
             instanceId = instanceId,
@@ -46,9 +47,10 @@ fun uploadScanStats(
 /**
  * Validate an API key.
  */
-suspend fun validateApiKey(): NetworkResult<ValidateApiKeyResponse, BouncerErrorResponse> =
+suspend fun validateApiKey(context: Context): NetworkResult<ValidateApiKeyResponse, BouncerErrorResponse> =
     withContext(Dispatchers.IO) {
         getForResult(
+            context = context,
             path = API_KEY_VALIDATION_PATH,
             responseSerializer = ValidateApiKeyResponse.serializer(),
             errorSerializer = BouncerErrorResponse.serializer()
@@ -59,12 +61,14 @@ suspend fun validateApiKey(): NetworkResult<ValidateApiKeyResponse, BouncerError
  * Get a signed URL for a model.
  */
 suspend fun getModelSignedUrl(
+    context: Context,
     modelClass: String,
     modelVersion: String,
     modelFileName: String
 ): NetworkResult<ModelSignedUrlResponse, BouncerErrorResponse> =
     withContext(Dispatchers.IO) {
         getForResult(
+            context = context,
             path = MODEL_SIGNED_URL_PATH.format(modelClass, modelVersion, modelFileName),
             responseSerializer = ModelSignedUrlResponse.serializer(),
             errorSerializer = BouncerErrorResponse.serializer()

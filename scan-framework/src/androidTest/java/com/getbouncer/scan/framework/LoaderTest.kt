@@ -17,16 +17,15 @@ import kotlin.test.assertTrue
 
 class LoaderTest {
     private val testContext = InstrumentationRegistry.getInstrumentation().context
-    private val appContext = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Before
     fun before() {
-        Config.initialize(appContext, "uXDc2sbugrkmvj1Bm3xOTXBw7NW4llgn")
+        Config.apiKey = "uXDc2sbugrkmvj1Bm3xOTXBw7NW4llgn"
     }
 
     @After
     fun after() {
-        Config.initialize(appContext, "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456")
+        Config.apiKey = null
     }
 
     @Test
@@ -114,7 +113,7 @@ class LoaderTest {
     @Test
     @LargeTest
     fun loadModelFromWeb_signedUrlFail() {
-        Config.initialize(testContext, "__INTEGRATION_TEST_INVALID_KEY__")
+        Config.apiKey = "__INTEGRATION_TEST_INVALID_KEY__"
         val localFileName = "test_loadModelFromWeb_fail"
         val localFile = File(testContext.cacheDir, localFileName)
         if (localFile.exists()) {

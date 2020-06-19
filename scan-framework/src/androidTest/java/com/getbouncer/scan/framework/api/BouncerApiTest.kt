@@ -38,12 +38,12 @@ class BouncerApiTest {
 
     @Before
     fun before() {
-        Config.initialize(appContext, "uXDc2sbugrkmvj1Bm3xOTXBw7NW4llgn")
+        Config.apiKey = "uXDc2sbugrkmvj1Bm3xOTXBw7NW4llgn"
     }
 
     @After
     fun after() {
-        Config.initialize(appContext, "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456")
+        Config.apiKey = null
     }
 
     @Test
@@ -65,6 +65,7 @@ class BouncerApiTest {
 
         when (
             val result = postForResult(
+                context = appContext,
                 path = STATS_PATH,
                 data = StatsPayload(
                     instanceId = "test_instance_id",
@@ -95,7 +96,7 @@ class BouncerApiTest {
     @Test
     @LargeTest
     fun validateApiKey() = runBlocking {
-        when (val result = com.getbouncer.scan.framework.api.validateApiKey()) {
+        when (val result = validateApiKey(appContext)) {
             is NetworkResult.Success<ValidateApiKeyResponse, BouncerErrorResponse> -> {
                 assertEquals(200, result.responseCode)
                 assertTrue(result.body.isApiKeyValid)
@@ -121,6 +122,7 @@ class BouncerApiTest {
     fun getModelSignedUrl() = runBlocking {
         when (
             val result = getModelSignedUrl(
+                appContext,
                 "fake_model",
                 "v0.0.1",
                 "model.tflite"

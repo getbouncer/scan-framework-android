@@ -1,6 +1,5 @@
 package com.getbouncer.scan.framework
 
-import android.content.Context
 import com.getbouncer.scan.framework.exception.InvalidBouncerApiKeyException
 import com.getbouncer.scan.framework.time.Duration
 import com.getbouncer.scan.framework.time.seconds
@@ -16,7 +15,6 @@ object Config {
      */
     @JvmStatic
     var isDebug: Boolean = false
-        private set
 
     /**
      * A log tag used by this library.
@@ -29,7 +27,7 @@ object Config {
      */
     @JvmStatic
     var apiKey: String? = null
-        private set(value) {
+        set(value) {
             if (value != null && value.length != REQUIRED_API_KEY_LENGTH) {
                 throw InvalidBouncerApiKeyException
             }
@@ -47,31 +45,6 @@ object Config {
      */
     @JvmStatic
     val trackStats: Boolean = true
-
-    /**
-     * The application context. If [initialize] has not been called, this will be null.
-     */
-    var applicationContext: Context? = null
-        private set
-
-    /**
-     * Get the application context. This must be pre-initialized.
-     */
-    fun getAppContext(): Context = applicationContext.let {
-        checkNotNull(it) { "Config.initialize was not called." }
-        it
-    }
-
-    /**
-     *
-     */
-    @JvmStatic
-    @JvmOverloads
-    fun initialize(context: Context, apiKey: String, debug: Boolean = this.isDebug) {
-        this.apiKey = apiKey
-        this.isDebug = debug
-        this.applicationContext = context.applicationContext
-    }
 }
 
 object NetworkConfig {
