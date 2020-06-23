@@ -1,12 +1,22 @@
 @file:JvmName("Network")
 package com.getbouncer.scan.framework.api
 
+import android.content.Context
+import android.util.Base64
 import android.util.Log
 import com.getbouncer.scan.framework.Config
 import com.getbouncer.scan.framework.NetworkConfig
 import com.getbouncer.scan.framework.time.Timer
+import com.getbouncer.scan.framework.util.DeviceIds
+import com.getbouncer.scan.framework.util.getDeviceName
+import com.getbouncer.scan.framework.util.getOsVersion
+import com.getbouncer.scan.framework.util.getPlatform
+import com.getbouncer.scan.framework.util.getSdkFlavor
+import com.getbouncer.scan.framework.util.getSdkVersion
+import com.getbouncer.scan.framework.util.memoize
 import com.getbouncer.scan.framework.util.retry
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
 import java.io.InputStreamReader
 import java.io.OutputStream
 import java.io.OutputStreamWriter
@@ -18,6 +28,8 @@ private const val REQUEST_METHOD_GET = "GET"
 private const val REQUEST_METHOD_POST = "POST"
 
 private const val REQUEST_PROPERTY_AUTHENTICATION = "x-bouncer-auth"
+private const val REQUEST_PROPERTY_DEVICE_ID = "x-bouncer-device-id"
+private const val REQUEST_PROPERTY_USER_AGENT = "User-Agent"
 private const val REQUEST_PROPERTY_CONTENT_TYPE = "Content-Type"
 private const val REQUEST_PROPERTY_CONTENT_ENCODING = "Content-Encoding"
 
@@ -31,10 +43,13 @@ private const val GZIP_MIN_SIZE_BYTES = 1500
 
 private val networkTimer by lazy { Timer.newInstance(Config.logTag, "network") }
 
+private val userAgent by lazy { "bouncer/${getPlatform()}/${getDeviceName()}/${getOsVersion()}/${getSdkVersion()}/${getSdkFlavor()}" }
+
 /**
  * Send a post request to a bouncer endpoint.
  */
 suspend fun <Request, Response, Error> postForResult(
+    context: Context,
     path: String,
     data: Request,
     requestSerializer: KSerializer<Request>,
@@ -43,6 +58,7 @@ suspend fun <Request, Response, Error> postForResult(
 ): NetworkResult<Response, Error> =
     translateNetworkResult(
         networkResult = postJsonWithRetries(
+            context = context,
             path = path,
             jsonData = Config.json.stringify(requestSerializer, data)
         ),
@@ -50,12 +66,32 @@ suspend fun <Request, Response, Error> postForResult(
         errorSerializer = errorSerializer
     )
 
+/**
+ * Send a post request to a bouncer endpoint and ignore the response.
+ */
+suspend fun <Request> postData(
+    context: Context,
+    path: String,
+    data: Request,
+    requestSerializer: KSerializer<Request>
+) {
+    postJsonWithRetries(
+        context = context,
+        path = path,
+        jsonData = Config.json.stringify(requestSerializer, data)
+    )
+}
+
+/**
+ * Send a get request to a bouncer endpoint and parse the response.
+ */
 suspend fun <Response, Error> getForResult(
+    context: Context,
     path: String,
     responseSerializer: KSerializer<Response>,
     errorSerializer: KSerializer<Error>
 ): NetworkResult<Response, Error> =
-    translateNetworkResult(getWithRetries(path), responseSerializer, errorSerializer)
+    translateNetworkResult(getWithRetries(context, path), responseSerializer, errorSerializer)
 
 /**
  * Translate a string network result to a response or error.
@@ -98,29 +134,19 @@ private fun <Response, Error> translateNetworkResult(
 }
 
 /**
- * Send a post request to a bouncer endpoint and ignore the response.
- */
-suspend fun <Request> postData(
-    path: String,
-    data: Request,
-    requestSerializer: KSerializer<Request>
-) {
-    postJsonWithRetries(
-        path = path,
-        jsonData = Config.json.stringify(requestSerializer, data)
-    )
-}
-
-/**
  * Send a post request to a bouncer endpoint with retries.
  */
-suspend fun postJsonWithRetries(path: String, jsonData: String): NetworkResult<String, String> =
+private suspend fun postJsonWithRetries(
+    context: Context,
+    path: String,
+    jsonData: String
+): NetworkResult<String, String> =
     try {
         retry(
             retryDelay = NetworkConfig.retryDelay,
             times = NetworkConfig.retryTotalAttempts
         ) {
-            val result = postJson(path, jsonData)
+            val result = postJson(context, path, jsonData)
             if (result.responseCode in NetworkConfig.retryStatusCodes) {
                 throw RetryNetworkRequestException(result)
             } else {
@@ -134,13 +160,13 @@ suspend fun postJsonWithRetries(path: String, jsonData: String): NetworkResult<S
 /**
  * Send a get request to a bouncer endpoint with retries.
  */
-suspend fun getWithRetries(path: String): NetworkResult<String, String> =
+private suspend fun getWithRetries(context: Context, path: String): NetworkResult<String, String> =
     try {
         retry(
             retryDelay = NetworkConfig.retryDelay,
             times = NetworkConfig.retryTotalAttempts
         ) {
-            val result = get(path)
+            val result = get(context, path)
             if (result.responseCode in NetworkConfig.retryStatusCodes) {
                 throw RetryNetworkRequestException(result)
             } else {
@@ -155,6 +181,7 @@ suspend fun getWithRetries(path: String): NetworkResult<String, String> =
  * Send a post request to a bouncer endpoint.
  */
 private fun postJson(
+    context: Context,
     path: String,
     jsonData: String
 ): NetworkResult<String, String> = networkTimer.measure(path) {
@@ -171,7 +198,7 @@ private fun postJson(
             doInput = true
 
             // Set headers
-            setRequestProperty(REQUEST_PROPERTY_AUTHENTICATION, Config.apiKey)
+            setRequestHeaders(context)
             setRequestProperty(REQUEST_PROPERTY_CONTENT_TYPE, CONTENT_TYPE_JSON)
 
             // Write the data
@@ -212,7 +239,7 @@ private fun postJson(
 /**
  * Send a get request to a bouncer endpoint.
  */
-private fun get(path: String): NetworkResult<String, String> = networkTimer.measure(path) {
+private fun get(context: Context, path: String): NetworkResult<String, String> = networkTimer.measure(path) {
     val fullPath = if (path.startsWith("/")) path else "/$path"
     val url = URL("${getBaseUrl()}$fullPath")
     var responseCode = -1
@@ -226,7 +253,7 @@ private fun get(path: String): NetworkResult<String, String> = networkTimer.meas
             doInput = true
 
             // Set headers
-            setRequestProperty(REQUEST_PROPERTY_AUTHENTICATION, Config.apiKey)
+            setRequestHeaders(context)
 
             // Read the response code. This will block until the response has been received.
             responseCode = this.responseCode
@@ -246,6 +273,45 @@ private fun get(path: String): NetworkResult<String, String> = networkTimer.meas
     } catch (t: Throwable) {
         Log.w(Config.logTag, "Failed network request to endpoint $url", t)
         NetworkResult.Exception(responseCode, t)
+    }
+}
+
+/**
+ * Set the required request headers on an HttpURLConnection
+ */
+private fun HttpURLConnection.setRequestHeaders(context: Context) {
+    setRequestProperty(REQUEST_PROPERTY_AUTHENTICATION, Config.apiKey)
+    setRequestProperty(REQUEST_PROPERTY_USER_AGENT, userAgent)
+    setRequestProperty(REQUEST_PROPERTY_DEVICE_ID, buildDeviceId(context))
+}
+
+@Serializable
+private data class DeviceIdStructure(
+    /**
+     * android_id
+     */
+    val a: String,
+
+    /**
+     * vendor_id
+     */
+    val v: String,
+
+    /**
+     * advertising_id
+     */
+    val d: String
+)
+
+private val buildDeviceId = memoize { context: Context ->
+    DeviceIds.fromContext(context).run {
+        Base64.encodeToString(
+            Config.json.stringify(
+                DeviceIdStructure.serializer(),
+                DeviceIdStructure(a = androidId ?: "", v = "", d = "")
+            ).toByteArray(Charsets.UTF_8),
+            Base64.URL_SAFE
+        )
     }
 }
 

@@ -23,15 +23,18 @@ import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.test.fail
 
-class BouncerApiAndroidTest {
+class BouncerApiTest {
 
     companion object {
         private const val STATS_PATH = "/scan_stats"
     }
 
     private val testContext = InstrumentationRegistry.getInstrumentation().context
+    private val appContext = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Before
     fun before() {
@@ -62,6 +65,7 @@ class BouncerApiAndroidTest {
 
         when (
             val result = postForResult(
+                context = appContext,
                 path = STATS_PATH,
                 data = StatsPayload(
                     instanceId = "test_instance_id",
@@ -92,9 +96,11 @@ class BouncerApiAndroidTest {
     @Test
     @LargeTest
     fun validateApiKey() = runBlocking {
-        when (val result = com.getbouncer.scan.framework.api.validateApiKey()) {
+        when (val result = validateApiKey(appContext)) {
             is NetworkResult.Success<ValidateApiKeyResponse, BouncerErrorResponse> -> {
                 assertEquals(200, result.responseCode)
+                assertTrue(result.body.isApiKeyValid)
+                assertNull(result.body.keyInvalidReason)
             }
             else -> fail("network result was not success: $result")
         }
@@ -116,6 +122,7 @@ class BouncerApiAndroidTest {
     fun getModelSignedUrl() = runBlocking {
         when (
             val result = getModelSignedUrl(
+                appContext,
                 "fake_model",
                 "v0.0.1",
                 "model.tflite"

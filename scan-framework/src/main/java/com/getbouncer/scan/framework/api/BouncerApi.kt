@@ -28,16 +28,20 @@ const val ERROR_CODE_NOT_AUTHENTICATED = "not_authenticated"
 fun uploadScanStats(
     context: Context,
     instanceId: String,
-    scanId: String?
+    scanId: String?,
+    device: Device,
+    appDetails: AppDetails,
+    scanStatistics: ScanStatistics
 ) = GlobalScope.launch(Dispatchers.IO) {
     postData(
+        context = context,
         path = STATS_PATH,
         data = StatsPayload(
             instanceId = instanceId,
             scanId = scanId,
-            device = ClientDevice.fromDevice(Device.fromContext(context)),
-            app = AppInfo.fromAppDetails(AppDetails.fromContext(context)),
-            scanStats = ScanStatistics.fromStats()
+            device = ClientDevice.fromDevice(device),
+            app = AppInfo.fromAppDetails(appDetails),
+            scanStats = scanStatistics
         ),
         requestSerializer = StatsPayload.serializer()
     )
@@ -46,9 +50,10 @@ fun uploadScanStats(
 /**
  * Validate an API key.
  */
-suspend fun validateApiKey(): NetworkResult<ValidateApiKeyResponse, BouncerErrorResponse> =
+suspend fun validateApiKey(context: Context): NetworkResult<ValidateApiKeyResponse, BouncerErrorResponse> =
     withContext(Dispatchers.IO) {
         getForResult(
+            context = context,
             path = API_KEY_VALIDATION_PATH,
             responseSerializer = ValidateApiKeyResponse.serializer(),
             errorSerializer = BouncerErrorResponse.serializer()
@@ -59,12 +64,14 @@ suspend fun validateApiKey(): NetworkResult<ValidateApiKeyResponse, BouncerError
  * Get a signed URL for a model.
  */
 suspend fun getModelSignedUrl(
+    context: Context,
     modelClass: String,
     modelVersion: String,
     modelFileName: String
 ): NetworkResult<ModelSignedUrlResponse, BouncerErrorResponse> =
     withContext(Dispatchers.IO) {
         getForResult(
+            context = context,
             path = MODEL_SIGNED_URL_PATH.format(modelClass, modelVersion, modelFileName),
             responseSerializer = ModelSignedUrlResponse.serializer(),
             errorSerializer = BouncerErrorResponse.serializer()
