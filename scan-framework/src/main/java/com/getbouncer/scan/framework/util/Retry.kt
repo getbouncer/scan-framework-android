@@ -1,12 +1,10 @@
 package com.getbouncer.scan.framework.util
 
-import androidx.annotation.RestrictTo
 import com.getbouncer.scan.framework.time.Duration
 import kotlinx.coroutines.delay
 
 private const val DEFAULT_RETRIES = 3
 
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 suspend fun <T> retry(
     retryDelay: Duration,
     times: Int = DEFAULT_RETRIES,
@@ -36,5 +34,7 @@ suspend fun <T> retry(
     }
 }
 
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-class UnexpectedRetryException : Exception()
+/**
+ * This exception should never be thrown, and therefore can be private.
+ */
+private class UnexpectedRetryException : Exception()
