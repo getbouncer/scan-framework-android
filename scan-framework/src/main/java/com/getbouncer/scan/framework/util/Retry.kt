@@ -10,6 +10,7 @@ private const val DEFAULT_RETRIES = 3
 suspend fun <T> retry(
     retryDelay: Duration,
     times: Int = DEFAULT_RETRIES,
+    excluding: List<Class<out Throwable>> = emptyList(),
     task: suspend () -> T
 ): T {
     var exception: Throwable? = null
@@ -18,6 +19,9 @@ suspend fun <T> retry(
             return task()
         } catch (t: Throwable) {
             exception = t
+            if (t.javaClass in excluding) {
+                throw t
+            }
             if (attempt < times) {
                 delay(retryDelay.inMilliseconds.toLong())
             }
