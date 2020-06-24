@@ -6,6 +6,8 @@ import com.getbouncer.scan.framework.AnalyzerFactory
 import com.getbouncer.scan.framework.Config
 import com.getbouncer.scan.framework.Loader
 import com.getbouncer.scan.framework.time.Timer
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.tensorflow.lite.Interpreter
@@ -19,13 +21,13 @@ abstract class TensorFlowLiteAnalyzer<Input, MLInput, Output, MLOutput>(
     private val debug: Boolean = false
 ) : Analyzer<Input, Unit, Output> {
 
-    protected abstract fun buildEmptyMLOutput(): MLOutput
+    protected abstract suspend fun buildEmptyMLOutput(): MLOutput
 
-    protected abstract fun interpretMLOutput(data: Input, mlOutput: MLOutput): Output
+    protected abstract suspend fun interpretMLOutput(data: Input, mlOutput: MLOutput): Output
 
-    protected abstract fun transformData(data: Input): MLInput
+    protected abstract suspend fun transformData(data: Input): MLInput
 
-    protected abstract fun executeInference(tfInterpreter: Interpreter, data: MLInput, mlOutput: MLOutput)
+    protected abstract suspend fun executeInference(tfInterpreter: Interpreter, data: MLInput, mlOutput: MLOutput)
 
     private val loggingTimer by lazy {
         Timer.newInstance(Config.logTag, "$name ${this::class.java.simpleName}", enabled = debug)
@@ -33,19 +35,27 @@ abstract class TensorFlowLiteAnalyzer<Input, MLInput, Output, MLOutput>(
 
     override suspend fun analyze(data: Input, state: Unit): Output {
         val mlInput = loggingTimer.measure("transform") {
-            transformData(data)
+            runBlocking {
+                transformData(data)
+            }
         }
 
         val mlOutput = loggingTimer.measure("prepare") {
-            buildEmptyMLOutput()
+            runBlocking {
+                buildEmptyMLOutput()
+            }
         }
 
         loggingTimer.measure("infer") {
-            executeInference(tfInterpreter, mlInput, mlOutput)
+            runBlocking {
+                executeInference(tfInterpreter, mlInput, mlOutput)
+            }
         }
 
         return loggingTimer.measure("interpret") {
-            interpretMLOutput(data, mlOutput)
+            runBlocking {
+                interpretMLOutput(data, mlOutput)
+            }
         }
     }
 

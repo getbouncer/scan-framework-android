@@ -61,3 +61,5 @@ fun Size.scaleAndCenterWithin(containingSize: Size): Rect {
         /* bottom */ top + scaledSize.height
     )
 }
+
+fun Rect.size() = Size(width(), height())
