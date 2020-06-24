@@ -55,7 +55,7 @@ suspend fun <Request, Response, Error> postForResult(
     requestSerializer: KSerializer<Request>,
     responseSerializer: KSerializer<Response>,
     errorSerializer: KSerializer<Error>
-): NetworkResult<Response, Error> =
+): NetworkResult<out Response, out Error> =
     translateNetworkResult(
         networkResult = postJsonWithRetries(
             context = context,
@@ -90,41 +90,41 @@ suspend fun <Response, Error> getForResult(
     path: String,
     responseSerializer: KSerializer<Response>,
     errorSerializer: KSerializer<Error>
-): NetworkResult<Response, Error> =
+): NetworkResult<out Response, out Error> =
     translateNetworkResult(getWithRetries(context, path), responseSerializer, errorSerializer)
 
 /**
  * Translate a string network result to a response or error.
  */
 private fun <Response, Error> translateNetworkResult(
-    networkResult: NetworkResult<String, String>,
+    networkResult: NetworkResult<out String, out String>,
     responseSerializer: KSerializer<Response>,
     errorSerializer: KSerializer<Error>
-): NetworkResult<Response, Error> = when (networkResult) {
+): NetworkResult<out Response, out Error> = when (networkResult) {
     is NetworkResult.Success ->
         try {
-            NetworkResult.Success<Response, Error>(
+            NetworkResult.Success(
                 responseCode = networkResult.responseCode,
                 body = Config.json.parse(responseSerializer, networkResult.body)
             )
         } catch (t: Throwable) {
             try {
-                NetworkResult.Error<Response, Error>(
+                NetworkResult.Error(
                     responseCode = networkResult.responseCode,
                     error = Config.json.parse(errorSerializer, networkResult.body)
                 )
             } catch (et: Throwable) {
-                NetworkResult.Exception<Response, Error>(networkResult.responseCode, t)
+                NetworkResult.Exception(networkResult.responseCode, t)
             }
         }
     is NetworkResult.Error ->
         try {
-            NetworkResult.Error<Response, Error>(
+            NetworkResult.Error(
                 responseCode = networkResult.responseCode,
                 error = Config.json.parse(errorSerializer, networkResult.error)
             )
         } catch (t: Throwable) {
-            NetworkResult.Exception<Response, Error>(networkResult.responseCode, t)
+            NetworkResult.Exception(networkResult.responseCode, t)
         }
     is NetworkResult.Exception ->
         NetworkResult.Exception(
@@ -140,7 +140,7 @@ private suspend fun postJsonWithRetries(
     context: Context,
     path: String,
     jsonData: String
-): NetworkResult<String, String> =
+): NetworkResult<out String, out String> =
     try {
         retry(
             retryDelay = NetworkConfig.retryDelay,
@@ -160,7 +160,7 @@ private suspend fun postJsonWithRetries(
 /**
  * Send a get request to a bouncer endpoint with retries.
  */
-private suspend fun getWithRetries(context: Context, path: String): NetworkResult<String, String> =
+private suspend fun getWithRetries(context: Context, path: String): NetworkResult<out String, out String> =
     try {
         retry(
             retryDelay = NetworkConfig.retryDelay,
@@ -184,7 +184,7 @@ private fun postJson(
     context: Context,
     path: String,
     jsonData: String
-): NetworkResult<String, String> = networkTimer.measure(path) {
+): NetworkResult<out String, out String> = networkTimer.measure(path) {
     val fullPath = if (path.startsWith("/")) path else "/$path"
     val url = URL("${getBaseUrl()}$fullPath")
     var responseCode = -1
@@ -239,7 +239,7 @@ private fun postJson(
 /**
  * Send a get request to a bouncer endpoint.
  */
-private fun get(context: Context, path: String): NetworkResult<String, String> = networkTimer.measure(path) {
+private fun get(context: Context, path: String): NetworkResult<out String, out String> = networkTimer.measure(path) {
     val fullPath = if (path.startsWith("/")) path else "/$path"
     val url = URL("${getBaseUrl()}$fullPath")
     var responseCode = -1
@@ -347,4 +347,4 @@ private fun getBaseUrl() = if (NetworkConfig.baseUrl.endsWith("/")) {
     NetworkConfig.baseUrl
 }
 
-private class RetryNetworkRequestException(val result: NetworkResult<String, String>) : Exception()
+private class RetryNetworkRequestException(val result: NetworkResult<out String, out String>) : Exception()

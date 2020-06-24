@@ -50,7 +50,7 @@ fun uploadScanStats(
 /**
  * Validate an API key.
  */
-suspend fun validateApiKey(context: Context): NetworkResult<ValidateApiKeyResponse, BouncerErrorResponse> =
+suspend fun validateApiKey(context: Context): NetworkResult<out ValidateApiKeyResponse, out BouncerErrorResponse> =
     withContext(Dispatchers.IO) {
         getForResult(
             context = context,
@@ -68,7 +68,7 @@ suspend fun getModelSignedUrl(
     modelClass: String,
     modelVersion: String,
     modelFileName: String
-): NetworkResult<ModelSignedUrlResponse, BouncerErrorResponse> =
+): NetworkResult<out ModelSignedUrlResponse, out BouncerErrorResponse> =
     withContext(Dispatchers.IO) {
         getForResult(
             context = context,
