@@ -3,8 +3,6 @@ package com.getbouncer.scan.framework
 import android.content.Context
 import android.util.Log
 import com.getbouncer.scan.framework.api.NetworkResult
-import com.getbouncer.scan.framework.api.dto.BouncerErrorResponse
-import com.getbouncer.scan.framework.api.dto.ModelSignedUrlResponse
 import com.getbouncer.scan.framework.api.getModelSignedUrl
 import com.getbouncer.scan.framework.exception.HashMismatchException
 import com.getbouncer.scan.framework.util.retry
@@ -214,7 +212,7 @@ abstract class ModelWebLoader(context: Context) : WebLoader(context) {
         when (
             val signedUrlResponse = runBlocking { getModelSignedUrl(context, modelClass, modelVersion, modelFileName) }
         ) {
-            is NetworkResult.Success<ModelSignedUrlResponse, BouncerErrorResponse> ->
+            is NetworkResult.Success ->
                 URL(signedUrlResponse.body.modelUrl)
             else -> {
                 URL("${NetworkConfig.baseUrl}/v1/signed_url_failure/model/$modelClass/$modelVersion/android/$modelFileName")

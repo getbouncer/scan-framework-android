@@ -7,10 +7,8 @@ import com.getbouncer.scan.framework.Stats
 import com.getbouncer.scan.framework.api.dto.AppInfo
 import com.getbouncer.scan.framework.api.dto.BouncerErrorResponse
 import com.getbouncer.scan.framework.api.dto.ClientDevice
-import com.getbouncer.scan.framework.api.dto.ModelSignedUrlResponse
 import com.getbouncer.scan.framework.api.dto.ScanStatistics
 import com.getbouncer.scan.framework.api.dto.StatsPayload
-import com.getbouncer.scan.framework.api.dto.ValidateApiKeyResponse
 import com.getbouncer.scan.framework.util.AppDetails
 import com.getbouncer.scan.framework.util.Device
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -79,7 +77,7 @@ class BouncerApiTest {
                 errorSerializer = BouncerErrorResponse.serializer()
             )
         ) {
-            is NetworkResult.Success<ScanStatsResults, BouncerErrorResponse> -> {
+            is NetworkResult.Success -> {
                 assertEquals(200, result.responseCode)
             }
             else -> fail("Network result was not success: $result")
@@ -97,7 +95,7 @@ class BouncerApiTest {
     @LargeTest
     fun validateApiKey() = runBlocking {
         when (val result = validateApiKey(appContext)) {
-            is NetworkResult.Success<ValidateApiKeyResponse, BouncerErrorResponse> -> {
+            is NetworkResult.Success -> {
                 assertEquals(200, result.responseCode)
                 assertTrue(result.body.isApiKeyValid)
                 assertNull(result.body.keyInvalidReason)
@@ -128,7 +126,7 @@ class BouncerApiTest {
                 "model.tflite"
             )
         ) {
-            is NetworkResult.Success<ModelSignedUrlResponse, BouncerErrorResponse> -> {
+            is NetworkResult.Success -> {
                 assertNotNull(result.body.modelUrl)
                 assertNotEquals("", result.body.modelUrl)
             }
