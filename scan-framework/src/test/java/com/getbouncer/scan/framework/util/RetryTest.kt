@@ -60,4 +60,19 @@ class RetryTest {
         }
         assertEquals(3, executions)
     }
+
+    @Test
+    @SmallTest
+    @ExperimentalCoroutinesApi
+    fun retry_excluding() = runBlockingTest {
+        var executions = 0
+
+        assertFailsWith<RuntimeException> {
+            retry<Int>(1.milliseconds, excluding = listOf(RuntimeException::class.java)) {
+                executions++
+                throw RuntimeException()
+            }
+        }
+        assertEquals(1, executions)
+    }
 }
