@@ -2,7 +2,6 @@ package com.getbouncer.scan.framework
 
 import android.content.Context
 import android.util.Log
-import androidx.annotation.VisibleForTesting
 import com.getbouncer.scan.framework.api.NetworkResult
 import com.getbouncer.scan.framework.api.getModelSignedUrl
 import com.getbouncer.scan.framework.api.getModelUpgradePath
