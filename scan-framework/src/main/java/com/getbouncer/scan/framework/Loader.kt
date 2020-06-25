@@ -62,16 +62,6 @@ abstract class ResourceLoader(private val context: Context) : Loader {
     }
 }
 
-class HashMismatchException(val algorithm: String, val expected: String, val actual: String?) :
-    Exception("Invalid hash result for algorithm '$algorithm'. Expected '$expected' but got '$actual'") {
-
-    override fun toString() = "HashMismatchException(algorithm='$algorithm', expected='$expected', actual='$actual')"
-}
-
-class FileCreationException(val fileName: String) : Exception("Unable to create local file '$fileName'") {
-    override fun toString() = "FileCreationException(fileName='$fileName')"
-}
-
 sealed class WebLoader : Loader {
 
     protected data class DownloadDetails(val url: URL, val hash: String, val hashAlgorithm: String)
@@ -124,7 +114,7 @@ sealed class WebLoader : Loader {
         cleanUpPostDownload(downloadedFile)
 
         stat.trackResult("success")
-        withContext(Dispatchers.IO) { readFileToByteBuffer(downloadedFile) }
+        readFileToByteBuffer(downloadedFile)
     }
 
     /**
@@ -166,7 +156,7 @@ abstract class DirectDownloadWebLoader(private val context: Context) : WebLoader
     override suspend fun tryLoadCachedModel(criticalPath: Boolean): ByteBuffer? {
         val localFile = getDownloadOutputFile()
         return if (isLocalFileValid(localFile, hash, hashAlgorithm)) {
-            withContext(Dispatchers.IO) { readFileToByteBuffer(localFile) }
+            readFileToByteBuffer(localFile)
         } else {
             null
         }
@@ -196,7 +186,7 @@ abstract class SignedUrlModelWebLoader(private val context: Context) : WebLoader
     override suspend fun tryLoadCachedModel(criticalPath: Boolean): ByteBuffer? {
         val localFile = getDownloadOutputFile()
         return if (isLocalFileValid(localFile, hash, hashAlgorithm)) {
-            withContext(Dispatchers.IO) { readFileToByteBuffer(localFile) }
+            readFileToByteBuffer(localFile)
         } else {
             null
         }
@@ -255,7 +245,7 @@ abstract class UpdatingModelWebLoader(private val context: Context): SignedUrlMo
      */
     override suspend fun tryLoadCachedModel(criticalPath: Boolean): ByteBuffer? =
         if (criticalPath) {
-            getLatestFile()?.let { withContext(Dispatchers.IO) { readFileToByteBuffer(it) } }
+            getLatestFile()?.let { readFileToByteBuffer(it) }
         } else {
             null
         }
@@ -264,7 +254,7 @@ abstract class UpdatingModelWebLoader(private val context: Context): SignedUrlMo
      * If the latest model has already been downloaded, load it into memory.
      */
     override suspend fun tryLoadCachedModel(hash: String, hashAlgorithm: String): ByteBuffer? =
-        getMatchingFile(hash, hashAlgorithm)?.let { withContext(Dispatchers.IO) { readFileToByteBuffer(it) } }
+        getMatchingFile(hash, hashAlgorithm)?.let { readFileToByteBuffer(it) }
 
     override suspend fun getDownloadOutputFile() = File(cacheFolder, System.currentTimeMillis().toString())
 
@@ -332,8 +322,10 @@ abstract class UpdatingModelWebLoader(private val context: Context): SignedUrlMo
 /**
  * Read a [file] into a [ByteBuffer].
  */
-private fun readFileToByteBuffer(file: File) = FileInputStream(file).use {
-    readFileToByteBuffer(it, 0, file.length())
+private suspend fun readFileToByteBuffer(file: File) = withContext(Dispatchers.IO) {
+    FileInputStream(file).use {
+        readFileToByteBuffer(it, 0, file.length())
+    }
 }
 
 /**
@@ -416,4 +408,13 @@ private suspend fun downloadFile(url: URL, outputFile: File) = withContext(Dispa
 
         outputFile
     }
+}
+
+class HashMismatchException(val algorithm: String, val expected: String, val actual: String?) :
+    Exception("Invalid hash result for algorithm '$algorithm'. Expected '$expected' but got '$actual'") {
+    override fun toString() = "HashMismatchException(algorithm='$algorithm', expected='$expected', actual='$actual')"
+}
+
+class FileCreationException(val fileName: String) : Exception("Unable to create local file '$fileName'") {
+    override fun toString() = "FileCreationException(fileName='$fileName')"
 }
