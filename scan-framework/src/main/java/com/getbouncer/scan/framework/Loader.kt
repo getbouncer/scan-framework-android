@@ -2,6 +2,7 @@ package com.getbouncer.scan.framework
 
 import android.content.Context
 import android.util.Log
+import androidx.annotation.VisibleForTesting
 import com.getbouncer.scan.framework.api.NetworkResult
 import com.getbouncer.scan.framework.api.getModelSignedUrl
 import com.getbouncer.scan.framework.api.getModelUpgradePath
@@ -143,6 +144,11 @@ sealed class WebLoader : Loader {
      * After download, clean up.
      */
     protected abstract suspend fun cleanUpPostDownload(downloadedFile: File)
+
+    /**
+     * Clear the cache for this loader. This will force new downloads.
+     */
+    abstract suspend fun clearCache()
 }
 
 /**
@@ -168,35 +174,30 @@ abstract class DirectDownloadWebLoader(private val context: Context) : WebLoader
 
     override suspend fun getDownloadOutputFile() = File(context.cacheDir, localFileName)
 
-    override suspend fun getDownloadDetails() = DownloadDetails(url, hash, hashAlgorithm)
+    override suspend fun getDownloadDetails(): DownloadDetails? = DownloadDetails(url, hash, hashAlgorithm)
 
     override suspend fun cleanUpPostDownload(downloadedFile: File) { /* nothing to do */ }
+
+    override suspend fun clearCache() {
+        val localFile = getDownloadOutputFile()
+        if (localFile.exists()) {
+            localFile.delete()
+        }
+    }
 }
 
 /**
  * A loader that uses the signed URL server endpoints to download a model and load it into memory
  */
-abstract class SignedUrlModelWebLoader(private val context: Context) : WebLoader() {
+abstract class SignedUrlModelWebLoader(private val context: Context) : DirectDownloadWebLoader(context) {
     abstract val modelClass: String
     abstract val modelVersion: String
     abstract val modelFileName: String
-    abstract val hash: String
-    abstract val hashAlgorithm: String
 
     private val localFileName by lazy { "${modelClass}_${modelFileName}_$modelVersion" }
 
-    override suspend fun tryLoadCachedModel(criticalPath: Boolean): ByteBuffer? {
-        val localFile = getDownloadOutputFile()
-        return if (isLocalFileValid(localFile, hash, hashAlgorithm)) {
-            readFileToByteBuffer(localFile)
-        } else {
-            null
-        }
-    }
-
-    override suspend fun tryLoadCachedModel(hash: String, hashAlgorithm: String): ByteBuffer? = null
-
-    override suspend fun getDownloadOutputFile() = File(context.cacheDir, localFileName)
+    // this field is not used by this class
+    override val url: URL = URL("https://getbouncer.com")
 
     override suspend fun getDownloadDetails() =
         when (val signedUrlResponse = getModelSignedUrl(context, modelClass, modelVersion, modelFileName)) {
@@ -212,8 +213,6 @@ abstract class SignedUrlModelWebLoader(private val context: Context) : WebLoader
                 null
             }
         }?.let { DownloadDetails(it, hash, hashAlgorithm) }
-
-    override suspend fun cleanUpPostDownload(downloadedFile: File) { /* nothing to do */ }
 }
 
 /**
@@ -313,6 +312,13 @@ abstract class UpdatingModelWebLoader(private val context: Context) : SignedUrlM
             localFolder.mkdir()
         }
         return localFolder
+    }
+
+    /**
+     * Force re-download of models by clearing the cache.
+     */
+    override suspend fun clearCache() {
+        cacheFolder.deleteRecursively()
     }
 }
 
