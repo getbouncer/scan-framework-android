@@ -22,6 +22,8 @@ import java.nio.channels.FileChannel
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 
+const val HASH_ALGORITHM = "SHA-256"
+
 /**
  * An interface for loading data into a byte buffer.
  */
@@ -218,12 +220,7 @@ abstract class SignedUrlModelWebLoader(private val context: Context) : WebLoader
  * A loader that queries Bouncer servers for updated models. If a new version is found, download it. If the model
  * details match what is cached, return those instead.
  */
-abstract class UpdatingModelWebLoader(private val context: Context): SignedUrlModelWebLoader(context) {
-
-    companion object {
-        private const val HASH_ALGORITHM = "SHA-256"
-    }
-
+abstract class UpdatingModelWebLoader(private val context: Context) : SignedUrlModelWebLoader(context) {
     abstract val modelFrameworkVersion: String
 
     abstract val defaultModelVersion: String

@@ -35,7 +35,7 @@ class LoaderTest {
             override val resource: Int = R.raw.sample_resource
         }
 
-        val byteBuffer = runBlocking { ResourceModelLoaderImpl(testContext).loadData() }
+        val byteBuffer = runBlocking { ResourceModelLoaderImpl(testContext).loadData(false) }
         assertNotNull(byteBuffer)
         assertEquals(14, byteBuffer.limit(), "File is not expected size")
         byteBuffer.rewind()
@@ -64,14 +64,15 @@ class LoaderTest {
             localFile.delete()
         }
 
-        class ModelWebLoaderImpl(context: Context) : ModelWebLoader(context) {
+        class ModelWebLoaderImpl(context: Context) : SignedUrlModelWebLoader(context) {
             override val modelClass = "object_detection"
             override val modelVersion = "v0.0.3"
             override val modelFileName = "ssd.tflite"
             override val hash: String = "7c5a294ff9a1e665f07d3e64d898062e17a2348f01b0be75b2d5295988ce6a4c"
+            override val hashAlgorithm = HASH_ALGORITHM
         }
 
-        val byteBuffer = runBlocking { ModelWebLoaderImpl(testContext).loadData() }
+        val byteBuffer = runBlocking { ModelWebLoaderImpl(testContext).loadData(false) }
         assertNotNull(byteBuffer)
         assertEquals(9957868, byteBuffer.limit(), "File is not expected size")
         byteBuffer.rewind()
@@ -100,14 +101,15 @@ class LoaderTest {
             localFile.delete()
         }
 
-        class ModelWebLoaderImpl(context: Context) : ModelWebLoader(context) {
+        class ModelWebLoaderImpl(context: Context) : SignedUrlModelWebLoader(context) {
             override val modelClass = "invalid_model"
             override val modelVersion = "v0.0.2"
             override val modelFileName = "ssd.tflite"
             override val hash: String = "b7331fd09bf479a20e01b77ebf1b5edbd312639edf8dd883aa7b86f4b7fbfa62"
+            override val hashAlgorithm = HASH_ALGORITHM
         }
 
-        assertNull(runBlocking { ModelWebLoaderImpl(testContext).loadData() })
+        assertNull(runBlocking { ModelWebLoaderImpl(testContext).loadData(false) })
     }
 
     @Test
@@ -120,13 +122,14 @@ class LoaderTest {
             localFile.delete()
         }
 
-        class ModelWebLoaderImpl(context: Context) : ModelWebLoader(context) {
+        class ModelWebLoaderImpl(context: Context) : SignedUrlModelWebLoader(context) {
             override val modelClass = "object_detection"
             override val modelVersion = "v0.0.3"
             override val modelFileName = "ssd.tflite"
             override val hash: String = "7c5a294ff9a1e665f07d3e64d898062e17a2348f01b0be75b2d5295988ce6a4c"
+            override val hashAlgorithm = HASH_ALGORITHM
         }
 
-        assertNull(runBlocking { ModelWebLoaderImpl(testContext).loadData() })
+        assertNull(runBlocking { ModelWebLoaderImpl(testContext).loadData(false) })
     }
 }
