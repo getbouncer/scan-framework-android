@@ -6,5 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ModelUpgradeResponse(
     @SerialName("model_url") val modelUrl: String,
-    @SerialName("sha256") val sha256: String
+    @SerialName("model_version") val modelVersion: String,
+    @SerialName("hash") val hash: String,
+    @SerialName("hash_algorithm") val hashAlgorithm: String
 )

@@ -14,6 +14,8 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+const val HASH_ALGORITHM = "SHA-256"
+
 class LoaderTest {
     private val testContext = InstrumentationRegistry.getInstrumentation().context
 
@@ -135,11 +137,11 @@ class LoaderTest {
     fun loadUpgradableModelFromWeb_success() {
         class ModelWebLoaderImpl(context: Context) : UpdatingModelWebLoader(context) {
             override val modelClass = "object_detection"
-            override val modelFrameworkVersion: String = "1.0"
+            override val modelFrameworkVersion: Int = 1
             override val defaultModelVersion: String = "v0.0.3"
             override val defaultModelFileName: String = "ssd.tflite"
             override val defaultModelHash: String = "7c5a294ff9a1e665f07d3e64d898062e17a2348f01b0be75b2d5295988ce6a4c"
-            override val hashAlgorithm = HASH_ALGORITHM
+            override val defaultModelHashAlgorithm = HASH_ALGORITHM
         }
 
         val loader = ModelWebLoaderImpl(testContext)
@@ -172,11 +174,11 @@ class LoaderTest {
     fun loadUpgradableModelFromWeb_successCriticalPath() {
         class ModelWebLoaderImpl(context: Context) : UpdatingModelWebLoader(context) {
             override val modelClass = "object_detection"
-            override val modelFrameworkVersion: String = "1.0"
+            override val modelFrameworkVersion: Int = 1
             override val defaultModelVersion: String = "v0.0.3"
             override val defaultModelFileName: String = "ssd.tflite"
             override val defaultModelHash: String = "7c5a294ff9a1e665f07d3e64d898062e17a2348f01b0be75b2d5295988ce6a4c"
-            override val hashAlgorithm = HASH_ALGORITHM
+            override val defaultModelHashAlgorithm = HASH_ALGORITHM
         }
 
         val loader = ModelWebLoaderImpl(testContext)

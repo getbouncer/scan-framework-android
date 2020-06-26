@@ -86,7 +86,7 @@ suspend fun getModelSignedUrl(
 suspend fun getModelUpgradePath(
     context: Context,
     modelClass: String,
-    modelFrameworkVersion: String
+    modelFrameworkVersion: Int
 ): NetworkResult<out ModelUpgradeResponse, out BouncerErrorResponse> =
     withContext(Dispatchers.IO) {
         getForResult(

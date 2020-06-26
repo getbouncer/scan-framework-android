@@ -22,8 +22,6 @@ import java.nio.channels.FileChannel
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 
-const val HASH_ALGORITHM = "SHA-256"
-
 /**
  * An interface for loading data into a byte buffer.
  */
@@ -79,14 +77,17 @@ sealed class WebLoader : Loader {
 
     override suspend fun loadData(criticalPath: Boolean): ByteBuffer? = loadDataMutex.withLock {
         val stat = Stats.trackRepeatingTask("web_loader")
+        Log.d("AGW", "WebLoader ${this::class.java.simpleName} starting")
 
         loadException?.run {
+            Log.d("AGW", "WebLoader ${this::class.java.simpleName} had previous exception $this")
             stat.trackResult(this::class.java.simpleName)
             return@withLock null
         }
 
         // attempt to load the model from local cache
         tryLoadCachedModel(criticalPath)?.let {
+            Log.d("AGW", "WebLoader was able to load cached model")
             stat.trackResult("success")
             return@withLock it
         }
@@ -94,12 +95,14 @@ sealed class WebLoader : Loader {
         // get details for downloading the model
         val downloadDetails = getDownloadDetails()
         if (downloadDetails == null) {
+            Log.d("AGW", "WebLoader was unable to get download details")
             stat.trackResult("download_details_failure")
             return null
         }
 
         // check the local cache for a matching model
         tryLoadCachedModel(downloadDetails.hash, downloadDetails.hashAlgorithm)?.let {
+            Log.d("AGW", "WebLoader was able to get cached model given download details")
             stat.trackResult("success")
             return@withLock it
         }
@@ -108,12 +111,14 @@ sealed class WebLoader : Loader {
         val downloadedFile = try {
             downloadAndVerify(downloadDetails.url, getDownloadOutputFile(), downloadDetails.hash, downloadDetails.hashAlgorithm)
         } catch (t: Throwable) {
+            Log.d("AGW", "WebLoader was unable to download model given $downloadDetails to ${getDownloadOutputFile().absolutePath}")
             loadException = t
             stat.trackResult(t::class.java.simpleName)
             return null
         }
 
         cleanUpPostDownload(downloadedFile)
+        Log.d("AGW", "WebLoader cleaned up post download")
 
         stat.trackResult("success")
         readFileToByteBuffer(downloadedFile)
@@ -198,6 +203,8 @@ abstract class SignedUrlModelWebLoader(private val context: Context) : DirectDow
     // this field is not used by this class
     override val url: URL = URL("https://getbouncer.com")
 
+    override suspend fun getDownloadOutputFile() = File(context.cacheDir, localFileName)
+
     override suspend fun getDownloadDetails() =
         when (val signedUrlResponse = getModelSignedUrl(context, modelClass, modelVersion, modelFileName)) {
             is NetworkResult.Success ->
@@ -219,21 +226,23 @@ abstract class SignedUrlModelWebLoader(private val context: Context) : DirectDow
  * details match what is cached, return those instead.
  */
 abstract class UpdatingModelWebLoader(private val context: Context) : SignedUrlModelWebLoader(context) {
-    abstract val modelFrameworkVersion: String
+    abstract val modelFrameworkVersion: Int
 
     abstract val defaultModelVersion: String
     abstract val defaultModelFileName: String
     abstract val defaultModelHash: String
+    abstract val defaultModelHashAlgorithm: String
 
     private var cachedUrl: URL? = null
     private var cachedHash: String? = null
+    private var cachedHashAlgorithm: String? = null
 
     private val cacheFolder by lazy { ensureLocalFolder("${modelClass}_$modelFrameworkVersion") }
 
     override val modelVersion: String by lazy { defaultModelVersion }
     override val modelFileName: String by lazy { defaultModelFileName }
     override val hash: String by lazy { defaultModelHash }
-    override val hashAlgorithm: String = HASH_ALGORITHM
+    override val hashAlgorithm: String by lazy { defaultModelHashAlgorithm }
 
     /**
      * If this model is needed immediately, try to read from the local cache before performing an upgrade
@@ -256,14 +265,15 @@ abstract class UpdatingModelWebLoader(private val context: Context) : SignedUrlM
     override suspend fun getDownloadDetails(): DownloadDetails? {
         val url = cachedUrl
         val hash = cachedHash
-        if (url != null && !hash.isNullOrEmpty()) {
-            return DownloadDetails(url, hash, HASH_ALGORITHM)
+        val hashAlgorithm = cachedHashAlgorithm
+        if (url != null && !hash.isNullOrEmpty() && !hashAlgorithm.isNullOrEmpty()) {
+            return DownloadDetails(url, hash, hashAlgorithm)
         }
 
         return when (val modelUpgradeResponse = getModelUpgradePath(context, modelClass, modelFrameworkVersion)) {
             is NetworkResult.Success ->
                 try {
-                    DownloadDetails(URL(modelUpgradeResponse.body.modelUrl), modelUpgradeResponse.body.sha256, HASH_ALGORITHM).apply {
+                    DownloadDetails(URL(modelUpgradeResponse.body.modelUrl), modelUpgradeResponse.body.hash, modelUpgradeResponse.body.hashAlgorithm).apply {
                         cachedUrl = url
                         cachedHash = hash
                     }
