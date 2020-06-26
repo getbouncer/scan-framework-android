@@ -283,12 +283,17 @@ abstract class UpdatingModelWebLoader(private val context: Context) : SignedUrlM
                 }
             else -> {
                 Log.e(Config.logTag, "Failed to get latest details for model $modelClass: ${modelUpgradeResponse.responseCode}")
-                super.getDownloadDetails()?.apply {
-                    cachedUrl = url
-                    cachedHash = hash
-                }
+                fallbackDownloadDetails()
             }
         }
+    }
+
+    /**
+     * Fall back to getting the download details.
+     */
+    protected open suspend fun fallbackDownloadDetails() = super.getDownloadDetails()?.apply {
+        cachedUrl = url
+        cachedHash = hash
     }
 
     /**
@@ -328,6 +333,46 @@ abstract class UpdatingModelWebLoader(private val context: Context) : SignedUrlM
      */
     override suspend fun clearCache() {
         cacheFolder.deleteRecursively()
+    }
+}
+
+abstract class UpdatingResourceLoader(private val context: Context) : UpdatingModelWebLoader(context) {
+    protected abstract val resource: Int
+
+    override val defaultModelFileName: String = ""
+    override val defaultModelVersion: String = ""
+    override val defaultModelHash: String = ""
+    override val defaultModelHashAlgorithm: String = ""
+
+    override suspend fun tryLoadCachedModel(criticalPath: Boolean): ByteBuffer? = if (criticalPath) {
+        super.tryLoadCachedModel(criticalPath) ?: loadModelFromResource()
+    } else {
+        null
+    }
+
+    override suspend fun fallbackDownloadDetails(): DownloadDetails? = DownloadDetails(
+        url = URL("https://localhost"),
+        hash = defaultModelHash,
+        hashAlgorithm = defaultModelHashAlgorithm
+    )
+
+    override suspend fun tryLoadCachedModel(hash: String, hashAlgorithm: String): ByteBuffer? =
+        super.tryLoadCachedModel(true) ?: loadModelFromResource()
+
+    private fun loadModelFromResource(): ByteBuffer? = try {
+        context.resources.openRawResourceFd(resource).use { fileDescriptor ->
+            FileInputStream(fileDescriptor.fileDescriptor).use { input ->
+                val data = readFileToByteBuffer(
+                    input,
+                    fileDescriptor.startOffset,
+                    fileDescriptor.declaredLength
+                )
+                data
+            }
+        }
+    } catch (t: Throwable) {
+        Log.e(Config.logTag, "Failed to load resource", t)
+        null
     }
 }
 
