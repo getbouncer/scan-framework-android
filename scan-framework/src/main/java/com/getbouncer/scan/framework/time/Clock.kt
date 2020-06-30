@@ -7,7 +7,7 @@ object Clock {
 /**
  * Convert a milliseconds since epoch timestamp to a clock mark.
  */
-fun Long.asEpochMillisecondsClockMark(): ClockMark = AbsoluteClockMark(this.milliseconds.inNanoseconds)
+fun Long.asEpochMillisecondsClockMark(): ClockMark = AbsoluteClockMark(this)
 
 /**
  * A marked point in time.
