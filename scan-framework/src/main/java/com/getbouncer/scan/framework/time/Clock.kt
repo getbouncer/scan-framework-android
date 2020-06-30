@@ -1,40 +1,83 @@
 package com.getbouncer.scan.framework.time
 
 object Clock {
-    fun markNow(): ClockMark = ClockMark()
+    fun markNow(): ClockMark = PreciseClockMark(System.nanoTime())
 }
 
-class ClockMark internal constructor() {
-    private val originMark = System.nanoTime()
+/**
+ * Convert a milliseconds since epoch timestamp to a clock mark.
+ */
+fun Long.asEpochMillisecondsClockMark(): ClockMark = AbsoluteClockMark(this.milliseconds.inNanoseconds)
 
-    fun elapsedSince(): Duration = (System.nanoTime() - originMark).nanoseconds
+/**
+ * A marked point in time.
+ */
+interface ClockMark {
+    fun elapsedSince(): Duration
 
-    fun inMillisecondsSinceEpoch(): Long = System.currentTimeMillis() - elapsedSince().inMilliseconds.toLong()
+    fun toMillisecondsSinceEpoch(): Long
+}
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is ClockMark) return false
+/**
+ * A clock mark based on milliseconds since epoch. This is precise to the nearest millisecond.
+ */
+private class AbsoluteClockMark(private val millisecondsSinceEpoch: Long) : ClockMark {
+    override fun elapsedSince(): Duration = (System.currentTimeMillis() - millisecondsSinceEpoch).milliseconds
 
-        if (originMark != other.originMark) return false
+    override fun toMillisecondsSinceEpoch(): Long = millisecondsSinceEpoch
 
-        return true
+    override fun equals(other: Any?): Boolean =
+        this === other || when (other) {
+            is AbsoluteClockMark -> millisecondsSinceEpoch == other.millisecondsSinceEpoch
+            is ClockMark -> toMillisecondsSinceEpoch() == other.toMillisecondsSinceEpoch()
+            else -> false
+        }
+
+    override fun hashCode(): Int {
+        return millisecondsSinceEpoch.hashCode()
     }
+
+    override fun toString(): String {
+        return "AbsoluteClockMark(${elapsedSince()} ago)"
+    }
+}
+
+/**
+ * A precise clock mark that is not bound to epoch seconds. This is precise to the nearest nanosecond.
+ */
+private class PreciseClockMark(private val originMark: Long) : ClockMark{
+    override fun elapsedSince(): Duration = (System.nanoTime() - originMark).nanoseconds
+
+    override fun toMillisecondsSinceEpoch(): Long = System.currentTimeMillis() - elapsedSince().inMilliseconds.toLong()
+
+    override fun equals(other: Any?): Boolean =
+        this === other || when (other) {
+            is PreciseClockMark -> originMark == other.originMark
+            is ClockMark -> toMillisecondsSinceEpoch() == other.toMillisecondsSinceEpoch()
+            else -> false
+        }
 
     override fun hashCode(): Int {
         return originMark.hashCode()
     }
 
     override fun toString(): String {
-        return "ClockMark(${elapsedSince()} ago)"
+        return "PreciseClockMark(${elapsedSince()} ago)"
     }
 }
 
+/**
+ * Measure the amount of time a process takes.
+ */
 inline fun <T> measureTimeWithResult(block: () -> T): Pair<Duration, T> {
     val mark = Clock.markNow()
     val result = block()
     return mark.elapsedSince() to result
 }
 
+/**
+ * Measure the amount of time a process takes.
+ */
 inline fun measureTime(block: () -> Unit): Duration {
     val mark = Clock.markNow()
     block()
