@@ -45,7 +45,7 @@ private class AbsoluteClockMark(private val millisecondsSinceEpoch: Long) : Cloc
 /**
  * A precise clock mark that is not bound to epoch seconds. This is precise to the nearest nanosecond.
  */
-private class PreciseClockMark(private val originMark: Long) : ClockMark{
+private class PreciseClockMark(private val originMark: Long) : ClockMark {
     override fun elapsedSince(): Duration = (System.nanoTime() - originMark).nanoseconds
 
     override fun toMillisecondsSinceEpoch(): Long = System.currentTimeMillis() - elapsedSince().inMilliseconds.toLong()
