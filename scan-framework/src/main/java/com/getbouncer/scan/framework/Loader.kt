@@ -5,6 +5,8 @@ import android.util.Log
 import com.getbouncer.scan.framework.api.NetworkResult
 import com.getbouncer.scan.framework.api.getModelSignedUrl
 import com.getbouncer.scan.framework.api.getModelUpgradePath
+import com.getbouncer.scan.framework.time.asEpochMillisecondsClockMark
+import com.getbouncer.scan.framework.time.weeks
 import com.getbouncer.scan.framework.util.retry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -21,6 +23,9 @@ import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
+
+private val CACHE_MODEL_TIME = 1.weeks
+private const val CACHE_MODEL_MAX_COUNT = 3
 
 /**
  * An interface for loading data into a byte buffer.
@@ -77,17 +82,14 @@ sealed class WebLoader : Loader {
 
     override suspend fun loadData(criticalPath: Boolean): ByteBuffer? = loadDataMutex.withLock {
         val stat = Stats.trackRepeatingTask("web_loader")
-        Log.d("AGW", "WebLoader ${this::class.java.simpleName} starting")
 
         loadException?.run {
-            Log.d("AGW", "WebLoader ${this::class.java.simpleName} had previous exception $this")
             stat.trackResult(this::class.java.simpleName)
             return@withLock null
         }
 
         // attempt to load the model from local cache
         tryLoadCachedModel(criticalPath)?.let {
-            Log.d("AGW", "WebLoader was able to load cached model")
             stat.trackResult("success")
             return@withLock it
         }
@@ -95,14 +97,12 @@ sealed class WebLoader : Loader {
         // get details for downloading the model
         val downloadDetails = getDownloadDetails()
         if (downloadDetails == null) {
-            Log.d("AGW", "WebLoader was unable to get download details")
             stat.trackResult("download_details_failure")
             return null
         }
 
         // check the local cache for a matching model
         tryLoadCachedModel(downloadDetails.hash, downloadDetails.hashAlgorithm)?.let {
-            Log.d("AGW", "WebLoader was able to get cached model given download details")
             stat.trackResult("success")
             return@withLock it
         }
@@ -111,14 +111,12 @@ sealed class WebLoader : Loader {
         val downloadedFile = try {
             downloadAndVerify(downloadDetails.url, getDownloadOutputFile(), downloadDetails.hash, downloadDetails.hashAlgorithm)
         } catch (t: Throwable) {
-            Log.d("AGW", "WebLoader was unable to download model given $downloadDetails to ${getDownloadOutputFile().absolutePath}")
             loadException = t
             stat.trackResult(t::class.java.simpleName)
-            return null
+            return tryLoadCachedModel(true)
         }
 
         cleanUpPostDownload(downloadedFile)
-        Log.d("AGW", "WebLoader cleaned up post download")
 
         stat.trackResult("success")
         readFileToByteBuffer(downloadedFile)
@@ -300,7 +298,13 @@ abstract class UpdatingModelWebLoader(private val context: Context) : SignedUrlM
      * Delete all files in cache that are not the recently downloaded file.
      */
     override suspend fun cleanUpPostDownload(downloadedFile: File) = withContext(Dispatchers.IO) {
-        cacheFolder.listFiles()?.filter { it != downloadedFile }?.forEach { it.delete() }.let { Unit }
+        cacheFolder
+            .listFiles()
+            ?.filter { it != downloadedFile && calculateHash(it, defaultModelHashAlgorithm) != defaultModelHash }
+            ?.sortedByDescending { it.lastModified() }
+            ?.filterIndexed { index, file -> file.lastModified().asEpochMillisecondsClockMark().elapsedSince() > CACHE_MODEL_TIME || index > CACHE_MODEL_MAX_COUNT }
+            ?.forEach { it.delete() }
+            .let { Unit }
     }
 
     /**
@@ -336,6 +340,11 @@ abstract class UpdatingModelWebLoader(private val context: Context) : SignedUrlM
     }
 }
 
+
+/**
+ * A loader that queries Bouncer servers for updated models. If a new version is found, download it. If the model
+ * details match what is cached, return those instead.
+ */
 abstract class UpdatingResourceLoader(private val context: Context) : UpdatingModelWebLoader(context) {
     protected abstract val resource: Int
 
@@ -357,7 +366,7 @@ abstract class UpdatingResourceLoader(private val context: Context) : UpdatingMo
     )
 
     override suspend fun tryLoadCachedModel(hash: String, hashAlgorithm: String): ByteBuffer? =
-        super.tryLoadCachedModel(true) ?: loadModelFromResource()
+        super.tryLoadCachedModel(hash, hashAlgorithm) ?: loadModelFromResource()
 
     private fun loadModelFromResource(): ByteBuffer? = try {
         context.resources.openRawResourceFd(resource).use { fileDescriptor ->
