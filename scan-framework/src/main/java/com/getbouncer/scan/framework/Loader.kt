@@ -340,7 +340,6 @@ abstract class UpdatingModelWebLoader(private val context: Context) : SignedUrlM
     }
 }
 
-
 /**
  * A loader that queries Bouncer servers for updated models. If a new version is found, download it. If the model
  * details match what is cached, return those instead.
