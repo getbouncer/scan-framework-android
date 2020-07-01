@@ -104,6 +104,7 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
     protected suspend fun unsubscribeFromFlow() = cancelMutex.withLock {
         workerJob?.apply { if (isActive) { cancel() } }
         started.set(false)
+        updateState(state.copy(finished = false))
     }
 
     /**
@@ -132,11 +133,9 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
                 }
             }
 
-            cancelMutex.withLock {
-                if (state.finished) {
-                    loopExecutionStatTracker.trackResult("success:$workerId")
-                    unsubscribeFromFlow()
-                }
+            if (state.finished) {
+                loopExecutionStatTracker.trackResult("success:$workerId")
+                unsubscribeFromFlow()
             }
 
             stat.trackResult("success")
@@ -235,9 +234,7 @@ class FiniteAnalyzerLoop<DataFrame, State, Output>(
         return if (framesToProcess > 0) {
             subscribeToFlow(channel.receiveAsFlow(), processingCoroutineScope)
         } else {
-            processingCoroutineScope.launch {
-                resultHandler.onAllDataProcessed()
-            }
+            processingCoroutineScope.launch { resultHandler.onAllDataProcessed() }
         }
     }
 
@@ -259,6 +256,7 @@ class FiniteAnalyzerLoop<DataFrame, State, Output>(
 
         if (isFinished(state)) {
             updateState(state.copy(finished = true))
+            unsubscribeFromFlow()
         }
     }
 

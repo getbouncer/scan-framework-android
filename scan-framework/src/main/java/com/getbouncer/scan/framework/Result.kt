@@ -449,13 +449,13 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
         val overallFps = if (overallRate.duration != Duration.ZERO) {
             overallRate.amount / overallRate.duration.inSeconds
         } else {
-            0.0F
+            0.0
         }
 
         val instantFps = if (instantRate.duration != Duration.ZERO) {
             instantRate.amount / instantRate.duration.inSeconds
         } else {
-            0.0F
+            0.0
         }
 
         if (Config.isDebug) {
