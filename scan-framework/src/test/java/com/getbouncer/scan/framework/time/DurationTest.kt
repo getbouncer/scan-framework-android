@@ -62,12 +62,12 @@ class DurationTest {
         assertEquals(randomDouble.truncate(3), randomDouble.microseconds.inMicroseconds, randomDouble.toString())
         assertEquals(randomDouble.truncate(6), randomDouble.milliseconds.inMilliseconds.truncate(6), randomDouble.toString())
         assertEquals(randomDouble.truncate(9), randomDouble.seconds.inSeconds.truncate(9), randomDouble.toString())
-        assertEquals(randomDouble.truncate(10), randomDouble.minutes.inMinutes.truncate(10), randomDouble.toString())
-        assertEquals(randomDouble.truncate(11), randomDouble.hours.inHours.truncate(11), randomDouble.toString())
-        assertEquals(randomDouble.truncate(13), randomDouble.days.inDays.truncate(13), randomDouble.toString())
-        assertEquals(randomDouble.truncate(13), randomDouble.weeks.inWeeks.truncate(13), randomDouble.toString())
-        assertEquals(randomDouble.truncate(13), randomDouble.months.inMonths.truncate(13), randomDouble.toString())
-        assertEquals(randomDouble.truncate(13), randomDouble.years.inYears.truncate(13), randomDouble.toString())
+        assertEquals(randomDouble.truncate(9), randomDouble.minutes.inMinutes.truncate(9), randomDouble.toString())
+        assertEquals(randomDouble.truncate(10), randomDouble.hours.inHours.truncate(10), randomDouble.toString())
+        assertEquals(randomDouble.truncate(12), randomDouble.days.inDays.truncate(12), randomDouble.toString())
+        assertEquals(randomDouble.truncate(12), randomDouble.weeks.inWeeks.truncate(12), randomDouble.toString())
+        assertEquals(randomDouble.truncate(12), randomDouble.months.inMonths.truncate(12), randomDouble.toString())
+        assertEquals(randomDouble.truncate(12), randomDouble.years.inYears.truncate(12), randomDouble.toString())
     }
 
     @Test
