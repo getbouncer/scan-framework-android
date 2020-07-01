@@ -103,15 +103,7 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
     }
 
     protected suspend fun unsubscribeFromFlow() = cancelMutex.withLock {
-        println("AGW - unsubscribing from flow. job is $workerJob")
-        workerJob?.apply {
-            println("AGW - worker job unsubscribing $isActive")
-            if (isActive) {
-                println("AGW - job is active")
-                cancel()
-            }
-        }
-        println("AGW - resetting state")
+        workerJob?.apply { if (isActive) { cancel() } }
         started.set(false)
         updateState(state.copy(finished = false))
     }
@@ -125,7 +117,7 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
         analyzer: Analyzer<DataFrame, State, Output>
     ) {
         flow.collect { frame ->
-            yield()
+            yield() // allow for this to be canceled
             val stat = Stats.trackRepeatingTask("analyzer_execution:$name:${analyzer.name}")
             measureTime {
                 try {
@@ -143,9 +135,7 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
                 }
             }
 
-            println("AGW - FINISHED PROCESSING ITEM $frame")
             if (state.finished) {
-                println("AGW - state is finished")
                 loopExecutionStatTracker.trackResult("success:$workerId")
                 unsubscribeFromFlow()
             }
@@ -275,7 +265,6 @@ class FiniteAnalyzerLoop<DataFrame, State, Output>(
     private fun isFinished(timeElapsed: Duration): Boolean {
         val allFramesProcessed = framesProcessed.get() >= framesToProcess
         val exceededTimeLimit = timeElapsed > timeLimit
-        println("AGW - allFramesProcessed=$allFramesProcessed, exceedTimeLimit=$exceededTimeLimit")
 
         return allFramesProcessed || exceededTimeLimit
     }
