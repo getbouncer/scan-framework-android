@@ -5,6 +5,7 @@ import android.util.Log
 import com.getbouncer.scan.framework.api.NetworkResult
 import com.getbouncer.scan.framework.api.getModelSignedUrl
 import com.getbouncer.scan.framework.api.getModelUpgradePath
+import com.getbouncer.scan.framework.ml.trackModelLoaded
 import com.getbouncer.scan.framework.time.asEpochMillisecondsClockMark
 import com.getbouncer.scan.framework.time.weeks
 import com.getbouncer.scan.framework.util.retry
@@ -44,11 +45,15 @@ interface Loader {
  */
 abstract class ResourceLoader(private val context: Context) : Loader {
 
+    protected abstract val modelClass: String
+    protected abstract val modelVersion: String
+    protected abstract val modelFrameworkVersion: Int
     protected abstract val resource: Int
 
     override suspend fun loadData(criticalPath: Boolean): ByteBuffer? = withContext(Dispatchers.IO) {
         Stats.trackRepeatingTask("resource_loader:$resource") {
             try {
+                trackModelLoaded(modelClass, modelVersion, modelFrameworkVersion)
                 context.resources.openRawResourceFd(resource).use { fileDescriptor ->
                     FileInputStream(fileDescriptor.fileDescriptor).use { input ->
                         val data = readFileToByteBuffer(
@@ -85,7 +90,7 @@ sealed class WebLoader : Loader {
 
         loadException?.run {
             stat.trackResult(this::class.java.simpleName)
-            return@withLock null
+            return@withLock tryLoadCachedModel(true)
         }
 
         // attempt to load the model from local cache
@@ -98,7 +103,7 @@ sealed class WebLoader : Loader {
         val downloadDetails = getDownloadDetails()
         if (downloadDetails == null) {
             stat.trackResult("download_details_failure")
-            return null
+            return tryLoadCachedModel(true)
         }
 
         // check the local cache for a matching model

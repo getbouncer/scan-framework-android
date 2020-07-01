@@ -22,7 +22,7 @@ import kotlinx.coroutines.withContext
 private const val STATS_PATH = "/scan_stats"
 private const val API_KEY_VALIDATION_PATH = "/v1/api_key/validate"
 private const val MODEL_SIGNED_URL_PATH = "/v1/signed_url/model/%s/%s/android/%s"
-private const val MODEL_UPGRADE_PATH = "/v1/model/%s/%s/%s/%s"
+private const val MODEL_UPGRADE_PATH = "/v1/model/%s/%s/%s?client_name=%s"
 
 const val ERROR_CODE_NOT_AUTHENTICATED = "not_authenticated"
 
