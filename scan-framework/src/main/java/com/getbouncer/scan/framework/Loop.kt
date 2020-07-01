@@ -142,7 +142,6 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
                 if (state.finished) {
                     loopExecutionStatTracker.trackResult("success:$workerId")
                     unsubscribeFromFlow()
-                    Log.d("AGW", "CANCELING WORKER SCOPE")
                 }
             }
 
