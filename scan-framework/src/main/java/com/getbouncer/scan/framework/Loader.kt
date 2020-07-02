@@ -272,8 +272,8 @@ abstract class UpdatingModelWebLoader(private val context: Context) : SignedUrlM
      */
     override suspend fun tryLoadCachedModel(criticalPath: Boolean): LoadedModelMeta =
         if (criticalPath) {
-            getLatestFile()?.let { LoadedModelMeta(it.name, readFileToByteBuffer(it)) } ?:
-                LoadedModelMeta(defaultModelVersion, null)
+            getLatestFile()?.let { LoadedModelMeta(it.name, readFileToByteBuffer(it)) }
+                ?: LoadedModelMeta(defaultModelVersion, null)
         } else {
             LoadedModelMeta(defaultModelVersion, null)
         }
@@ -282,8 +282,8 @@ abstract class UpdatingModelWebLoader(private val context: Context) : SignedUrlM
      * If the latest model has already been downloaded, load it into memory.
      */
     override suspend fun tryLoadCachedModel(hash: String, hashAlgorithm: String): LoadedModelMeta =
-        getMatchingFile(hash, hashAlgorithm)?.let { LoadedModelMeta(it.name, readFileToByteBuffer(it)) } ?:
-            LoadedModelMeta(defaultModelVersion, null)
+        getMatchingFile(hash, hashAlgorithm)?.let { LoadedModelMeta(it.name, readFileToByteBuffer(it)) }
+            ?: LoadedModelMeta(defaultModelVersion, null)
 
     override suspend fun getDownloadOutputFile(modelVersion: String) = File(cacheFolder, modelVersion)
 
