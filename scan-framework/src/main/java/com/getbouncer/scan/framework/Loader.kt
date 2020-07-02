@@ -28,10 +28,17 @@ import java.security.NoSuchAlgorithmException
 private val CACHE_MODEL_TIME = 1.weeks
 private const val CACHE_MODEL_MAX_COUNT = 3
 
+data class LoadedModelMeta(
+    val modelVersion: String,
+    val model: ByteBuffer?
+)
+
 /**
  * An interface for loading data into a byte buffer.
  */
 interface Loader {
+    val modelClass: String
+    val modelFrameworkVersion: Int
 
     /**
      * Load data into memory. If this is part of the critical path (i.e. the loaded model will be used immediately),
@@ -44,17 +51,13 @@ interface Loader {
  * A factory for creating [ByteBuffer] objects from an android resource.
  */
 abstract class ResourceLoader(private val context: Context) : Loader {
-
-    protected abstract val modelClass: String
     protected abstract val modelVersion: String
-    protected abstract val modelFrameworkVersion: Int
     protected abstract val resource: Int
 
     override suspend fun loadData(criticalPath: Boolean): ByteBuffer? = withContext(Dispatchers.IO) {
         Stats.trackRepeatingTask("resource_loader:$resource") {
             try {
-                trackModelLoaded(modelClass, modelVersion, modelFrameworkVersion)
-                context.resources.openRawResourceFd(resource).use { fileDescriptor ->
+                val model = context.resources.openRawResourceFd(resource).use { fileDescriptor ->
                     FileInputStream(fileDescriptor.fileDescriptor).use { input ->
                         val data = readFileToByteBuffer(
                             input,
@@ -64,8 +67,11 @@ abstract class ResourceLoader(private val context: Context) : Loader {
                         data
                     }
                 }
+                trackModelLoaded(modelClass, modelVersion, modelFrameworkVersion, true)
+                model
             } catch (t: Throwable) {
                 Log.e(Config.logTag, "Failed to load resource", t)
+                trackModelLoaded(modelClass, modelVersion, modelFrameworkVersion, false)
                 null
             }
         }
@@ -73,8 +79,7 @@ abstract class ResourceLoader(private val context: Context) : Loader {
 }
 
 sealed class WebLoader : Loader {
-
-    protected data class DownloadDetails(val url: URL, val hash: String, val hashAlgorithm: String)
+    protected data class DownloadDetails(val url: URL, val hash: String, val hashAlgorithm: String, val modelVersion: String)
 
     private val loadDataMutex = Mutex()
 
@@ -89,58 +94,78 @@ sealed class WebLoader : Loader {
         val stat = Stats.trackRepeatingTask("web_loader")
 
         loadException?.run {
-            stat.trackResult(this::class.java.simpleName)
-            return@withLock tryLoadCachedModel(true)
+            val meta = tryLoadCachedModel(true)
+            trackModelLoaded(modelClass, meta.modelVersion, modelFrameworkVersion, meta.model != null)
+            if (meta.model == null) {
+                stat.trackResult(this::class.java.simpleName)
+            } else {
+                stat.trackResult("success")
+            }
+            return@withLock meta.model
         }
 
         // attempt to load the model from local cache
-        tryLoadCachedModel(criticalPath)?.let {
-            stat.trackResult("success")
-            return@withLock it
+        tryLoadCachedModel(criticalPath).run {
+            model?.let {
+                stat.trackResult("success")
+                trackModelLoaded(modelClass, modelVersion, modelFrameworkVersion, true)
+                return@withLock it
+            }
         }
 
         // get details for downloading the model
-        val downloadDetails = getDownloadDetails()
-        if (downloadDetails == null) {
+        val downloadDetails = getDownloadDetails() ?: run {
             stat.trackResult("download_details_failure")
-            return tryLoadCachedModel(true)
+            val meta = tryLoadCachedModel(true)
+            trackModelLoaded(modelClass, meta.modelVersion, modelFrameworkVersion, meta.model != null)
+            return@withLock meta.model
         }
 
         // check the local cache for a matching model
-        tryLoadCachedModel(downloadDetails.hash, downloadDetails.hashAlgorithm)?.let {
-            stat.trackResult("success")
-            return@withLock it
+        tryLoadCachedModel(downloadDetails.hash, downloadDetails.hashAlgorithm).run {
+            model?.let {
+                stat.trackResult("success")
+                trackModelLoaded(modelClass, modelVersion, modelFrameworkVersion, true)
+                return@withLock it
+            }
         }
 
         // download the model
         val downloadedFile = try {
-            downloadAndVerify(downloadDetails.url, getDownloadOutputFile(), downloadDetails.hash, downloadDetails.hashAlgorithm)
+            downloadAndVerify(downloadDetails.url, getDownloadOutputFile(downloadDetails.modelVersion), downloadDetails.hash, downloadDetails.hashAlgorithm)
         } catch (t: Throwable) {
             loadException = t
-            stat.trackResult(t::class.java.simpleName)
-            return tryLoadCachedModel(true)
+            val meta = tryLoadCachedModel(true)
+            trackModelLoaded(modelClass, meta.modelVersion, modelFrameworkVersion, meta.model != null)
+            if (meta.model == null) {
+                stat.trackResult(t::class.java.simpleName)
+            } else {
+                stat.trackResult("success")
+            }
+            return meta.model
         }
 
         cleanUpPostDownload(downloadedFile)
 
         stat.trackResult("success")
+        trackModelLoaded(modelClass, downloadDetails.modelVersion, modelFrameworkVersion, true)
         readFileToByteBuffer(downloadedFile)
     }
 
     /**
      * Attempt to load the model from the local cache.
      */
-    protected abstract suspend fun tryLoadCachedModel(criticalPath: Boolean): ByteBuffer?
+    protected abstract suspend fun tryLoadCachedModel(criticalPath: Boolean): LoadedModelMeta
 
     /**
      * Attempt to load a cached model given the required [hash] and [hashAlgorithm].
      */
-    protected abstract suspend fun tryLoadCachedModel(hash: String, hashAlgorithm: String): ByteBuffer?
+    protected abstract suspend fun tryLoadCachedModel(hash: String, hashAlgorithm: String): LoadedModelMeta
 
     /**
      * Get the file where the model should be downloaded.
      */
-    protected abstract suspend fun getDownloadOutputFile(): File
+    protected abstract suspend fun getDownloadOutputFile(modelVersion: String): File
 
     /**
      * Get [DownloadDetails] for the model that will be downloaded.
@@ -165,28 +190,29 @@ abstract class DirectDownloadWebLoader(private val context: Context) : WebLoader
     abstract val url: URL
     abstract val hash: String
     abstract val hashAlgorithm: String
+    abstract val modelVersion: String
 
     private val localFileName: String by lazy { url.path.replace('/', '_') }
 
-    override suspend fun tryLoadCachedModel(criticalPath: Boolean): ByteBuffer? {
-        val localFile = getDownloadOutputFile()
+    override suspend fun tryLoadCachedModel(criticalPath: Boolean): LoadedModelMeta {
+        val localFile = getDownloadOutputFile(modelVersion)
         return if (isLocalFileValid(localFile, hash, hashAlgorithm)) {
-            readFileToByteBuffer(localFile)
+            LoadedModelMeta(modelVersion, readFileToByteBuffer(localFile))
         } else {
-            null
+            LoadedModelMeta(modelVersion, null)
         }
     }
 
-    override suspend fun tryLoadCachedModel(hash: String, hashAlgorithm: String): ByteBuffer? = null
+    override suspend fun tryLoadCachedModel(hash: String, hashAlgorithm: String) = LoadedModelMeta("", null)
 
-    override suspend fun getDownloadOutputFile() = File(context.cacheDir, localFileName)
+    override suspend fun getDownloadOutputFile(modelVersion: String) = File(context.cacheDir, localFileName)
 
-    override suspend fun getDownloadDetails(): DownloadDetails? = DownloadDetails(url, hash, hashAlgorithm)
+    override suspend fun getDownloadDetails(): DownloadDetails? = DownloadDetails(url, hash, hashAlgorithm, modelVersion)
 
     override suspend fun cleanUpPostDownload(downloadedFile: File) { /* nothing to do */ }
 
     override suspend fun clearCache() {
-        val localFile = getDownloadOutputFile()
+        val localFile = getDownloadOutputFile(modelVersion)
         if (localFile.exists()) {
             localFile.delete()
         }
@@ -197,8 +223,6 @@ abstract class DirectDownloadWebLoader(private val context: Context) : WebLoader
  * A loader that uses the signed URL server endpoints to download a model and load it into memory
  */
 abstract class SignedUrlModelWebLoader(private val context: Context) : DirectDownloadWebLoader(context) {
-    abstract val modelClass: String
-    abstract val modelVersion: String
     abstract val modelFileName: String
 
     private val localFileName by lazy { "${modelClass}_${modelFileName}_$modelVersion" }
@@ -206,7 +230,7 @@ abstract class SignedUrlModelWebLoader(private val context: Context) : DirectDow
     // this field is not used by this class
     override val url: URL = URL("https://getbouncer.com")
 
-    override suspend fun getDownloadOutputFile() = File(context.cacheDir, localFileName)
+    override suspend fun getDownloadOutputFile(modelVersion: String) = File(context.cacheDir, localFileName)
 
     override suspend fun getDownloadDetails() =
         when (val signedUrlResponse = getModelSignedUrl(context, modelClass, modelVersion, modelFileName)) {
@@ -221,7 +245,7 @@ abstract class SignedUrlModelWebLoader(private val context: Context) : DirectDow
                 Log.e(Config.logTag, "Failed to get signed url for model $modelClass: ${signedUrlResponse.responseCode}")
                 null
             }
-        }?.let { DownloadDetails(it, hash, hashAlgorithm) }
+        }?.let { DownloadDetails(it, hash, hashAlgorithm, modelVersion) }
 }
 
 /**
@@ -229,16 +253,12 @@ abstract class SignedUrlModelWebLoader(private val context: Context) : DirectDow
  * details match what is cached, return those instead.
  */
 abstract class UpdatingModelWebLoader(private val context: Context) : SignedUrlModelWebLoader(context) {
-    abstract val modelFrameworkVersion: Int
-
     abstract val defaultModelVersion: String
     abstract val defaultModelFileName: String
     abstract val defaultModelHash: String
     abstract val defaultModelHashAlgorithm: String
 
-    private var cachedUrl: URL? = null
-    private var cachedHash: String? = null
-    private var cachedHashAlgorithm: String? = null
+    private var cachedDownloadDetails: DownloadDetails? = null
 
     private val cacheFolder by lazy { ensureLocalFolder("${modelClass}_$modelFrameworkVersion") }
 
@@ -250,36 +270,37 @@ abstract class UpdatingModelWebLoader(private val context: Context) : SignedUrlM
     /**
      * If this model is needed immediately, try to read from the local cache before performing an upgrade
      */
-    override suspend fun tryLoadCachedModel(criticalPath: Boolean): ByteBuffer? =
+    override suspend fun tryLoadCachedModel(criticalPath: Boolean): LoadedModelMeta =
         if (criticalPath) {
-            getLatestFile()?.let { readFileToByteBuffer(it) }
+            getLatestFile()?.let { LoadedModelMeta(it.name, readFileToByteBuffer(it)) } ?:
+                LoadedModelMeta(defaultModelVersion, null)
         } else {
-            null
+            LoadedModelMeta(defaultModelVersion, null)
         }
 
     /**
      * If the latest model has already been downloaded, load it into memory.
      */
-    override suspend fun tryLoadCachedModel(hash: String, hashAlgorithm: String): ByteBuffer? =
-        getMatchingFile(hash, hashAlgorithm)?.let { readFileToByteBuffer(it) }
+    override suspend fun tryLoadCachedModel(hash: String, hashAlgorithm: String): LoadedModelMeta =
+        getMatchingFile(hash, hashAlgorithm)?.let { LoadedModelMeta(it.name, readFileToByteBuffer(it)) } ?:
+            LoadedModelMeta(defaultModelVersion, null)
 
-    override suspend fun getDownloadOutputFile() = File(cacheFolder, System.currentTimeMillis().toString())
+    override suspend fun getDownloadOutputFile(modelVersion: String) = File(cacheFolder, modelVersion)
 
     override suspend fun getDownloadDetails(): DownloadDetails? {
-        val url = cachedUrl
-        val hash = cachedHash
-        val hashAlgorithm = cachedHashAlgorithm
-        if (url != null && !hash.isNullOrEmpty() && !hashAlgorithm.isNullOrEmpty()) {
-            return DownloadDetails(url, hash, hashAlgorithm)
+        cachedDownloadDetails?.let {
+            return DownloadDetails(url, hash, hashAlgorithm, modelVersion)
         }
 
         return when (val modelUpgradeResponse = getModelUpgradePath(context, modelClass, modelFrameworkVersion)) {
             is NetworkResult.Success ->
                 try {
-                    DownloadDetails(URL(modelUpgradeResponse.body.modelUrl), modelUpgradeResponse.body.hash, modelUpgradeResponse.body.hashAlgorithm).apply {
-                        cachedUrl = url
-                        cachedHash = hash
-                    }
+                    DownloadDetails(
+                        url = URL(modelUpgradeResponse.body.modelUrl),
+                        hash = modelUpgradeResponse.body.hash,
+                        hashAlgorithm = modelUpgradeResponse.body.hashAlgorithm,
+                        modelVersion = modelUpgradeResponse.body.modelVersion
+                    ).apply { cachedDownloadDetails = this }
                 } catch (t: Throwable) {
                     Log.e(Config.logTag, "Invalid signed url for model $modelClass: ${modelUpgradeResponse.body.modelUrl}")
                     null
@@ -294,10 +315,8 @@ abstract class UpdatingModelWebLoader(private val context: Context) : SignedUrlM
     /**
      * Fall back to getting the download details.
      */
-    protected open suspend fun fallbackDownloadDetails() = super.getDownloadDetails()?.apply {
-        cachedUrl = url
-        cachedHash = hash
-    }
+    protected open suspend fun fallbackDownloadDetails() =
+        super.getDownloadDetails()?.apply { cachedDownloadDetails = this }
 
     /**
      * Delete all files in cache that are not the recently downloaded file.
@@ -351,41 +370,61 @@ abstract class UpdatingModelWebLoader(private val context: Context) : SignedUrlM
  */
 abstract class UpdatingResourceLoader(private val context: Context) : UpdatingModelWebLoader(context) {
     protected abstract val resource: Int
+    protected abstract val resourceModelVersion: String
 
     override val defaultModelFileName: String = ""
     override val defaultModelVersion: String = ""
     override val defaultModelHash: String = ""
     override val defaultModelHashAlgorithm: String = ""
 
-    override suspend fun tryLoadCachedModel(criticalPath: Boolean): ByteBuffer? = if (criticalPath) {
-        super.tryLoadCachedModel(criticalPath) ?: loadModelFromResource()
+    override suspend fun tryLoadCachedModel(criticalPath: Boolean): LoadedModelMeta = if (criticalPath) {
+        super.tryLoadCachedModel(criticalPath).run {
+            if (model == null) {
+                loadModelFromResource()
+            } else {
+                this
+            }
+        }
     } else {
-        null
+        LoadedModelMeta(resourceModelVersion, null)
     }
 
     override suspend fun fallbackDownloadDetails(): DownloadDetails? = DownloadDetails(
         url = URL("https://localhost"),
         hash = defaultModelHash,
-        hashAlgorithm = defaultModelHashAlgorithm
+        hashAlgorithm = defaultModelHashAlgorithm,
+        modelVersion = defaultModelVersion
     )
 
-    override suspend fun tryLoadCachedModel(hash: String, hashAlgorithm: String): ByteBuffer? =
-        super.tryLoadCachedModel(hash, hashAlgorithm) ?: loadModelFromResource()
-
-    private fun loadModelFromResource(): ByteBuffer? = try {
-        context.resources.openRawResourceFd(resource).use { fileDescriptor ->
-            FileInputStream(fileDescriptor.fileDescriptor).use { input ->
-                val data = readFileToByteBuffer(
-                    input,
-                    fileDescriptor.startOffset,
-                    fileDescriptor.declaredLength
-                )
-                data
+    override suspend fun tryLoadCachedModel(hash: String, hashAlgorithm: String): LoadedModelMeta =
+        super.tryLoadCachedModel(hash, hashAlgorithm).run {
+            if (model == null) {
+                loadModelFromResource()
+            } else {
+                this
             }
         }
+
+    private fun loadModelFromResource(): LoadedModelMeta = try {
+        LoadedModelMeta(
+            modelVersion = resourceModelVersion,
+            model = context.resources.openRawResourceFd(resource).use { fileDescriptor ->
+                FileInputStream(fileDescriptor.fileDescriptor).use { input ->
+                    val data = readFileToByteBuffer(
+                        input,
+                        fileDescriptor.startOffset,
+                        fileDescriptor.declaredLength
+                    )
+                    data
+                }
+            }
+        )
     } catch (t: Throwable) {
         Log.e(Config.logTag, "Failed to load resource", t)
-        null
+        LoadedModelMeta(
+            modelVersion = resourceModelVersion,
+            model = null
+        )
     }
 }
 
