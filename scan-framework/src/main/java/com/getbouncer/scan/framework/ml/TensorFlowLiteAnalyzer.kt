@@ -1,3 +1,4 @@
+
 package com.getbouncer.scan.framework.ml
 
 import android.util.Log
@@ -6,7 +7,6 @@ import com.getbouncer.scan.framework.AnalyzerFactory
 import com.getbouncer.scan.framework.Config
 import com.getbouncer.scan.framework.Loader
 import com.getbouncer.scan.framework.time.Timer
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
