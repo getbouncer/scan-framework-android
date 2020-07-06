@@ -56,7 +56,7 @@ class LoaderTest {
     }
 
     @Test
-    @SmallTest
+    @LargeTest
     fun loadModelFromWeb_correct() {
         val localFileName = "test_loadModelFromWeb_correct"
         val localFile = File(testContext.cacheDir, localFileName)

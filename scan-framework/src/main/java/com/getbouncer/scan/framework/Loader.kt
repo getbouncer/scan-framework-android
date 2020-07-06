@@ -3,8 +3,6 @@ package com.getbouncer.scan.framework
 import android.content.Context
 import android.util.Log
 import com.getbouncer.scan.framework.api.NetworkResult
-import com.getbouncer.scan.framework.api.dto.BouncerErrorResponse
-import com.getbouncer.scan.framework.api.dto.ModelSignedUrlResponse
 import com.getbouncer.scan.framework.api.getModelSignedUrl
 import com.getbouncer.scan.framework.exception.HashMismatchException
 import com.getbouncer.scan.framework.util.retry
@@ -82,10 +80,17 @@ abstract class WebLoader(private val context: Context) : Loader {
     abstract val url: URL
     abstract val hash: String
 
-    private val localFileName: String by lazy { url.path.replace('/', '_') }
+    internal open val localFileName: String by lazy { url.path.replace('/', '_') }
 
     companion object {
         private const val HASH_ALGORITHM = "SHA-256"
+    }
+
+    suspend fun clearCache() = withContext(Dispatchers.IO) {
+        val localFile = File(context.cacheDir, localFileName)
+        if (localFile.exists()) {
+            localFile.delete()
+        }
     }
 
     /**
@@ -131,7 +136,7 @@ abstract class WebLoader(private val context: Context) : Loader {
     @Throws(IOException::class, HashMismatchException::class, NoSuchAlgorithmException::class, FileNotFoundException::class)
     private suspend fun downloadAndVerify() {
         if (!hashMatches(localFileName, hash)) {
-            downloadFile(url, localFileName)
+            downloadFile(url)
             if (!hashMatches(localFileName, hash)) {
                 throw HashMismatchException(
                     HASH_ALGORITHM,
@@ -172,16 +177,12 @@ abstract class WebLoader(private val context: Context) : Loader {
         }
 
     @Throws(IOException::class)
-    private suspend fun downloadFile(url: URL, localFileName: String) = withContext(Dispatchers.IO) {
+    private suspend fun downloadFile(url: URL) = withContext(Dispatchers.IO) {
         val urlConnection = url.openConnection()
+
+        clearCache()
+
         val outputFile = File(context.cacheDir, localFileName)
-
-        if (outputFile.exists()) {
-            if (!outputFile.delete()) {
-                return@withContext
-            }
-        }
-
         if (!outputFile.createNewFile()) {
             return@withContext
         }
@@ -205,11 +206,13 @@ abstract class ModelWebLoader(context: Context) : WebLoader(context) {
     abstract val modelVersion: String
     abstract val modelFileName: String
 
+    override val localFileName by lazy { "${modelClass}_${modelFileName}_$modelVersion" }
+
     override val url: URL by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         when (
-            val signedUrlResponse = runBlocking { getModelSignedUrl(modelClass, modelVersion, modelFileName) }
+            val signedUrlResponse = runBlocking { getModelSignedUrl(context, modelClass, modelVersion, modelFileName) }
         ) {
-            is NetworkResult.Success<ModelSignedUrlResponse, BouncerErrorResponse> ->
+            is NetworkResult.Success ->
                 URL(signedUrlResponse.body.modelUrl)
             else -> {
                 URL("${NetworkConfig.baseUrl}/v1/signed_url_failure/model/$modelClass/$modelVersion/android/$modelFileName")
