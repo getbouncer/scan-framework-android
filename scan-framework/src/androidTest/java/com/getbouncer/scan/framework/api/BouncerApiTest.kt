@@ -7,10 +7,8 @@ import com.getbouncer.scan.framework.Stats
 import com.getbouncer.scan.framework.api.dto.AppInfo
 import com.getbouncer.scan.framework.api.dto.BouncerErrorResponse
 import com.getbouncer.scan.framework.api.dto.ClientDevice
-import com.getbouncer.scan.framework.api.dto.ModelSignedUrlResponse
 import com.getbouncer.scan.framework.api.dto.ScanStatistics
 import com.getbouncer.scan.framework.api.dto.StatsPayload
-import com.getbouncer.scan.framework.api.dto.ValidateApiKeyResponse
 import com.getbouncer.scan.framework.util.AppDetails
 import com.getbouncer.scan.framework.util.Device
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -23,15 +21,18 @@ import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.test.fail
 
-class BouncerApiAndroidTest {
+class BouncerApiTest {
 
     companion object {
         private const val STATS_PATH = "/scan_stats"
     }
 
     private val testContext = InstrumentationRegistry.getInstrumentation().context
+    private val appContext = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Before
     fun before() {
@@ -62,6 +63,7 @@ class BouncerApiAndroidTest {
 
         when (
             val result = postForResult(
+                context = appContext,
                 path = STATS_PATH,
                 data = StatsPayload(
                     instanceId = "test_instance_id",
@@ -75,7 +77,7 @@ class BouncerApiAndroidTest {
                 errorSerializer = BouncerErrorResponse.serializer()
             )
         ) {
-            is NetworkResult.Success<ScanStatsResults, BouncerErrorResponse> -> {
+            is NetworkResult.Success -> {
                 assertEquals(200, result.responseCode)
             }
             else -> fail("Network result was not success: $result")
@@ -92,9 +94,11 @@ class BouncerApiAndroidTest {
     @Test
     @LargeTest
     fun validateApiKey() = runBlocking {
-        when (val result = com.getbouncer.scan.framework.api.validateApiKey()) {
-            is NetworkResult.Success<ValidateApiKeyResponse, BouncerErrorResponse> -> {
+        when (val result = validateApiKey(appContext)) {
+            is NetworkResult.Success -> {
                 assertEquals(200, result.responseCode)
+                assertTrue(result.body.isApiKeyValid)
+                assertNull(result.body.keyInvalidReason)
             }
             else -> fail("network result was not success: $result")
         }
@@ -116,12 +120,13 @@ class BouncerApiAndroidTest {
     fun getModelSignedUrl() = runBlocking {
         when (
             val result = getModelSignedUrl(
+                appContext,
                 "fake_model",
                 "v0.0.1",
                 "model.tflite"
             )
         ) {
-            is NetworkResult.Success<ModelSignedUrlResponse, BouncerErrorResponse> -> {
+            is NetworkResult.Success -> {
                 assertNotNull(result.body.modelUrl)
                 assertNotEquals("", result.body.modelUrl)
             }

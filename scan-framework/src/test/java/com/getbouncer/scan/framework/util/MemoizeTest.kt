@@ -295,4 +295,116 @@ class MemoizeTest {
 
         assertEquals(4, functionRunCount)
     }
+
+    @Test
+    @SmallTest
+    fun memoize3wrapper_onlyRunsOnce() {
+        var functionRunCount = 0
+
+        val testFunction = memoize { input1: Int, input2: Int, input3: Int ->
+            functionRunCount++
+            input1 > 0 && input2 > 0 && input3 > 0
+        }
+
+        assertTrue { testFunction.invoke(1, 2, 3) }
+        assertTrue { testFunction.invoke(1, 2, 3) }
+        assertTrue { testFunction.invoke(1, 2, 3) }
+        assertTrue { testFunction.invoke(1, 3, 4) }
+        assertTrue { testFunction.invoke(2, 2, 5) }
+        assertTrue { testFunction.invoke(4, 5, 6) }
+        assertTrue { testFunction.invoke(1, 2, 7) }
+        assertTrue { testFunction.invoke(1, 2, 3) }
+
+        assertEquals(5, functionRunCount)
+    }
+
+    @Test
+    @SmallTest
+    fun memoize3_onlyRunsOnce() {
+        var functionRunCount = 0
+
+        val testFunction = { input1: Int, input2: Int, input3: Int ->
+            functionRunCount++
+            input1 > 0 && input2 > 0 && input3 > 0
+        }.memoized()
+
+        assertTrue { testFunction.invoke(1, 2, 3) }
+        assertTrue { testFunction.invoke(1, 2, 3) }
+        assertTrue { testFunction.invoke(1, 2, 3) }
+        assertTrue { testFunction.invoke(1, 3, 4) }
+        assertTrue { testFunction.invoke(2, 2, 5) }
+        assertTrue { testFunction.invoke(4, 5, 6) }
+        assertTrue { testFunction.invoke(1, 2, 7) }
+        assertTrue { testFunction.invoke(1, 2, 3) }
+
+        assertEquals(5, functionRunCount)
+    }
+
+    @Test
+    @SmallTest
+    @ExperimentalCoroutinesApi
+    fun memoizeSuspend3wrapper_onlyRunsOnce() = runBlockingTest {
+        var functionRunCount = 0
+
+        val testFunction = memoizeSuspend { input1: Int, input2: Int, input3: Int ->
+            functionRunCount++
+            delay(100)
+            input1 > 0 && input2 > 0 && input3 > 0
+        }
+
+        val result1 = testFunction.invoke(1, 2, 3)
+        val result2 = testFunction.invoke(1, 2, 3)
+        val result3 = testFunction.invoke(1, 2, 3)
+        val result4 = testFunction.invoke(1, 3, 4)
+        val result5 = testFunction.invoke(2, 2, 5)
+        val result6 = testFunction.invoke(4, 5, 6)
+        val result7 = testFunction.invoke(1, 2, 7)
+        val result8 = testFunction.invoke(1, 2, 3)
+
+        assertTrue { result1 }
+        assertTrue { result2 }
+        assertTrue { result3 }
+        assertTrue { result4 }
+        assertTrue { result5 }
+        assertTrue { result6 }
+        assertTrue { result7 }
+        assertTrue { result8 }
+
+        assertEquals(5, functionRunCount)
+    }
+
+    @Test
+    @SmallTest
+    @ExperimentalCoroutinesApi
+    fun memoizeSuspend3_onlyRunsOnce() = runBlockingTest {
+        var functionRunCount = 0
+
+        val testFunction: suspend (Int, Int, Int) -> Boolean = { input1, input2, input3 ->
+            functionRunCount++
+            delay(100)
+            input1 > 0 && input2 > 0 && input3 > 0
+        }
+
+        val memoizedFunction = testFunction.memoizedSuspend()
+
+        val result1 = memoizedFunction.invoke(1, 2, 3)
+        val result2 = memoizedFunction.invoke(1, 2, 3)
+        val result3 = memoizedFunction.invoke(1, 2, 3)
+        val result4 = memoizedFunction.invoke(1, 3, 4)
+        val result5 = memoizedFunction.invoke(2, 2, 5)
+        val result6 = memoizedFunction.invoke(4, 5, 6)
+        val result7 = memoizedFunction.invoke(1, 2, 7)
+        val result8 = memoizedFunction.invoke(1, 2, 3)
+
+        assertTrue { result1 }
+        assertTrue { result2 }
+        assertTrue { result3 }
+        assertTrue { result4 }
+        assertTrue { result5 }
+        assertTrue { result6 }
+        assertTrue { result7 }
+        assertTrue { result8 }
+
+        assertEquals(5, functionRunCount)
+    }
 }
