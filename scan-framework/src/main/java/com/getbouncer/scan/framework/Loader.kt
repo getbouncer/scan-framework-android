@@ -371,11 +371,13 @@ abstract class UpdatingModelWebLoader(private val context: Context) : SignedUrlM
 abstract class UpdatingResourceLoader(private val context: Context) : UpdatingModelWebLoader(context) {
     protected abstract val resource: Int
     protected abstract val resourceModelVersion: String
+    protected abstract val resourceModelHash: String
+    protected abstract val resourceModelHashAlgorithm: String
 
     override val defaultModelFileName: String = ""
-    override val defaultModelVersion: String = ""
-    override val defaultModelHash: String = ""
-    override val defaultModelHashAlgorithm: String = ""
+    override val defaultModelVersion: String by lazy { resourceModelVersion }
+    override val defaultModelHash: String by lazy { resourceModelHash }
+    override val defaultModelHashAlgorithm: String by lazy { resourceModelHashAlgorithm }
 
     override suspend fun tryLoadCachedModel(criticalPath: Boolean): LoadedModelMeta = if (criticalPath) {
         super.tryLoadCachedModel(criticalPath).run {
@@ -391,18 +393,16 @@ abstract class UpdatingResourceLoader(private val context: Context) : UpdatingMo
 
     override suspend fun fallbackDownloadDetails(): DownloadDetails? = DownloadDetails(
         url = URL("https://localhost"),
-        hash = defaultModelHash,
-        hashAlgorithm = defaultModelHashAlgorithm,
-        modelVersion = defaultModelVersion
+        hash = resourceModelHash,
+        hashAlgorithm = resourceModelHashAlgorithm,
+        modelVersion = resourceModelVersion
     )
 
     override suspend fun tryLoadCachedModel(hash: String, hashAlgorithm: String): LoadedModelMeta =
-        super.tryLoadCachedModel(hash, hashAlgorithm).run {
-            if (model == null) {
-                loadModelFromResource()
-            } else {
-                this
-            }
+        if (hash == defaultModelHash && hashAlgorithm == defaultModelHashAlgorithm) {
+            loadModelFromResource()
+        } else {
+            super.tryLoadCachedModel(hash, hashAlgorithm)
         }
 
     private fun loadModelFromResource(): LoadedModelMeta = try {

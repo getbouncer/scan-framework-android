@@ -34,6 +34,9 @@ class LoaderTest {
     fun loadModelFromResource_success() {
         class ResourceModelLoaderImpl(context: Context) : ResourceLoader(context) {
             override val resource: Int = R.raw.sample_resource
+            override val modelVersion: String = "sample_resource"
+            override val modelClass: String = "sample_class"
+            override val modelFrameworkVersion: Int = 2049
         }
 
         val byteBuffer = runBlocking { ResourceModelLoaderImpl(testContext).loadData(false) }
@@ -61,6 +64,7 @@ class LoaderTest {
     fun loadModelFromWeb_success() {
         class ModelWebLoaderImpl(context: Context) : SignedUrlModelWebLoader(context) {
             override val modelClass = "object_detection"
+            override val modelFrameworkVersion: Int = 2049
             override val modelVersion = "v0.0.3"
             override val modelFileName = "ssd.tflite"
             override val hash: String = "7c5a294ff9a1e665f07d3e64d898062e17a2348f01b0be75b2d5295988ce6a4c"
@@ -97,6 +101,7 @@ class LoaderTest {
     fun loadModelFromWeb_fail() {
         class ModelWebLoaderImpl(context: Context) : SignedUrlModelWebLoader(context) {
             override val modelClass = "invalid_model"
+            override val modelFrameworkVersion: Int = 2049
             override val modelVersion = "v0.0.2"
             override val modelFileName = "ssd.tflite"
             override val hash: String = "b7331fd09bf479a20e01b77ebf1b5edbd312639edf8dd883aa7b86f4b7fbfa62"
@@ -118,6 +123,7 @@ class LoaderTest {
 
         class ModelWebLoaderImpl(context: Context) : SignedUrlModelWebLoader(context) {
             override val modelClass = "object_detection"
+            override val modelFrameworkVersion: Int = 2049
             override val modelVersion = "v0.0.3"
             override val modelFileName = "ssd.tflite"
             override val hash: String = "7c5a294ff9a1e665f07d3e64d898062e17a2348f01b0be75b2d5295988ce6a4c"
