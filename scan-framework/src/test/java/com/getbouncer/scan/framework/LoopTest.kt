@@ -51,8 +51,10 @@ class LoopTest {
 
         val loop = ProcessBoundAnalyzerLoop(
             analyzerPool = analyzerPool,
-            onAnalyzerFailure = { fail() },
-            onResultFailure = { fail() },
+            analyzerLoopErrorListener = object : AnalyzerLoopErrorListener {
+                override fun onAnalyzerFailure(t: Throwable): Boolean { fail(t.message) }
+                override fun onResultFailure(t: Throwable): Boolean { fail(t.message) }
+            },
             initialState = 1,
             name = "TestAnalyzerLoop",
             resultHandler = TestResultHandler()
@@ -111,8 +113,10 @@ class LoopTest {
 
         val loop = ProcessBoundAnalyzerLoop(
             analyzerPool = analyzerPool,
-            onAnalyzerFailure = { fail() },
-            onResultFailure = { fail() },
+            analyzerLoopErrorListener = object : AnalyzerLoopErrorListener {
+                override fun onAnalyzerFailure(t: Throwable): Boolean { fail(t.message) }
+                override fun onResultFailure(t: Throwable): Boolean { fail(t.message) }
+            },
             initialState = 1,
             name = "TestAnalyzerLoop",
             resultHandler = TestResultHandler()
@@ -161,8 +165,10 @@ class LoopTest {
 
         val loop = ProcessBoundAnalyzerLoop(
             analyzerPool = analyzerPool,
-            onAnalyzerFailure = { analyzerFailure = true; true },
-            onResultFailure = { fail() },
+            analyzerLoopErrorListener = object : AnalyzerLoopErrorListener {
+                override fun onAnalyzerFailure(t: Throwable): Boolean { analyzerFailure = true; return true }
+                override fun onResultFailure(t: Throwable): Boolean { fail(t.message) }
+            },
             initialState = 1,
             name = "TestAnalyzerLoop",
             resultHandler = TestResultHandler()
@@ -205,8 +211,10 @@ class LoopTest {
 
         val loop = FiniteAnalyzerLoop(
             analyzerPool = analyzerPool,
-            onAnalyzerFailure = { fail(it.message) },
-            onResultFailure = { fail(it.message) },
+            analyzerLoopErrorListener = object : AnalyzerLoopErrorListener {
+                override fun onAnalyzerFailure(t: Throwable): Boolean { fail(t.message) }
+                override fun onResultFailure(t: Throwable): Boolean { fail(t.message) }
+            },
             initialState = 1,
             name = "TestAnalyzerLoop",
             resultHandler = TestResultHandler(),
@@ -251,8 +259,10 @@ class LoopTest {
 
         val loop = FiniteAnalyzerLoop(
             analyzerPool = analyzerPool,
-            onAnalyzerFailure = { fail() },
-            onResultFailure = { fail() },
+            analyzerLoopErrorListener = object : AnalyzerLoopErrorListener {
+                override fun onAnalyzerFailure(t: Throwable): Boolean { fail(t.message) }
+                override fun onResultFailure(t: Throwable): Boolean { fail(t.message) }
+            },
             initialState = 1,
             name = "TestAnalyzerLoop",
             resultHandler = TestResultHandler(),
@@ -287,8 +297,10 @@ class LoopTest {
 
         val loop = FiniteAnalyzerLoop(
             analyzerPool = analyzerPool,
-            onAnalyzerFailure = { fail(it.message) },
-            onResultFailure = { fail(it.message) },
+            analyzerLoopErrorListener = object : AnalyzerLoopErrorListener {
+                override fun onAnalyzerFailure(t: Throwable): Boolean { fail(t.message) }
+                override fun onResultFailure(t: Throwable): Boolean { fail(t.message) }
+            },
             initialState = 1,
             name = "TestAnalyzerLoop",
             resultHandler = TestResultHandler(),
