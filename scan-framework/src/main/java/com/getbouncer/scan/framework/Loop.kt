@@ -33,6 +33,21 @@ object NoAnalyzersAvailableException : Exception()
 
 object AlreadySubscribedException : Exception()
 
+interface AnalyzerLoopErrorListener {
+
+    /**
+     * A failure occurred during frame analysis. If this returns true, the loop will terminate. If this returns false,
+     * the loop will continue to execute on new data.
+     */
+    fun onAnalyzerFailure(t: Throwable): Boolean
+
+    /**
+     * A failure occurred while collecting the result of frame analysis. If this returns true, the loop will terminate.
+     * If this returns false, the loop will continue to execute on new data.
+     */
+    fun onResultFailure(t: Throwable): Boolean
+}
+
 /**
  * A loop to execute repeated analysis. The loop uses coroutines to run the [Analyzer.analyze] method. If the [Analyzer]
  * is threadsafe, multiple coroutines will be used. If not, a single coroutine will be used.
@@ -44,14 +59,12 @@ object AlreadySubscribedException : Exception()
  * Note: an analyzer loop can only be started once. Once it terminates, it cannot be restarted.
  *
  * @param analyzerPool: A pool of analyzers to use in this loop.
- * @param onAnalyzerFailure: This function will fire when a coroutine throws an exception. If this method returns true,
- *     the loop will terminate. If this method returns false, the loop will continue to execute.
+ * @param analyzerLoopErrorListener: An error handler for this loop
  * @param initialState: The initial state for this loop.
  */
 sealed class AnalyzerLoop<DataFrame, State, Output>(
     private val analyzerPool: AnalyzerPool<DataFrame, State, Output>,
-    private val onAnalyzerFailure: (t: Throwable) -> Boolean,
-    private val onResultFailure: (t: Throwable) -> Boolean,
+    private val analyzerLoopErrorListener: AnalyzerLoopErrorListener,
     initialState: State
 ) : StateUpdatingResultHandler<DataFrame, LoopState<State>, Output> {
     private val started = AtomicBoolean(false)
@@ -79,7 +92,7 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
         if (!started.getAndSet(true)) {
             updateState(state.copy(startedAt = Clock.markNow()))
         } else {
-            onAnalyzerFailure(AlreadySubscribedException)
+            analyzerLoopErrorListener.onAnalyzerFailure(AlreadySubscribedException)
             return null
         }
 
@@ -87,7 +100,7 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
 
         if (analyzerPool.analyzers.isEmpty()) {
             runBlocking { loopExecutionStatTracker.trackResult("canceled") }
-            onAnalyzerFailure(NoAnalyzersAvailableException)
+            analyzerLoopErrorListener.onAnalyzerFailure(NoAnalyzersAvailableException)
             return null
         }
 
@@ -145,11 +158,11 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
     }
 
     private suspend fun handleAnalyzerFailure(t: Throwable) {
-        if (withContext(Dispatchers.Main) { onAnalyzerFailure(t) }) { unsubscribeFromFlow() }
+        if (withContext(Dispatchers.Main) { analyzerLoopErrorListener.onAnalyzerFailure(t) }) { unsubscribeFromFlow() }
     }
 
     private suspend fun handleResultFailure(t: Throwable) {
-        if (withContext(Dispatchers.Main) { onResultFailure(t) }) { unsubscribeFromFlow() }
+        if (withContext(Dispatchers.Main) { analyzerLoopErrorListener.onResultFailure(t) }) { unsubscribeFromFlow() }
     }
 }
 
@@ -166,20 +179,17 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
  * @param analyzerPool: A pool of analyzers to use in this loop.
  * @param resultHandler: A result handler that will be called with the results from the analyzers in this loop.
  * @param name: The name of this loop for stat and event tracking.
- * @param onAnalyzerFailure: This function will fire when a coroutine throws an exception. If this method returns true,
- *     the loop will terminate. If this method returns false, the loop will continue to execute.
+ * @param analyzerLoopErrorListener: An error handler for this loop
  */
 class ProcessBoundAnalyzerLoop<DataFrame, State, Output>(
     private val analyzerPool: AnalyzerPool<DataFrame, State, Output>,
     private val resultHandler: StateUpdatingResultHandler<DataFrame, LoopState<State>, Output>,
     initialState: State,
     override val name: String,
-    onAnalyzerFailure: (t: Throwable) -> Boolean,
-    onResultFailure: (t: Throwable) -> Boolean
+    analyzerLoopErrorListener: AnalyzerLoopErrorListener
 ) : AnalyzerLoop<DataFrame, State, Output>(
     analyzerPool,
-    onAnalyzerFailure,
-    onResultFailure,
+    analyzerLoopErrorListener,
     initialState
 ) {
     /**
@@ -208,8 +218,7 @@ class ProcessBoundAnalyzerLoop<DataFrame, State, Output>(
  * @param analyzerPool: A pool of analyzers to use in this loop.
  * @param resultHandler: A result handler that will be called with the results from the analyzers in this loop.
  * @param name: The name of this loop for stat and event tracking.
- * @param onAnalyzerFailure: This function will fire when a coroutine throws an exception. If this method returns true,
- *     the loop will terminate. If this method returns false, the loop will continue to execute.
+ * @param analyzerLoopErrorListener: An error handler for this loop
  * @param timeLimit: If specified, this is the maximum allowed time for the loop to run. If the loop
  *     exceeds this duration, the loop will terminate
  */
@@ -218,13 +227,11 @@ class FiniteAnalyzerLoop<DataFrame, State, Output>(
     private val resultHandler: TerminatingResultHandler<DataFrame, State, Output>,
     initialState: State,
     override val name: String,
-    onAnalyzerFailure: (t: Throwable) -> Boolean,
-    onResultFailure: (t: Throwable) -> Boolean,
+    analyzerLoopErrorListener: AnalyzerLoopErrorListener,
     private val timeLimit: Duration = Duration.INFINITE
 ) : AnalyzerLoop<DataFrame, State, Output>(
     analyzerPool,
-    onAnalyzerFailure,
-    onResultFailure,
+    analyzerLoopErrorListener,
     initialState
 ) {
     private val framesProcessed: AtomicInteger = AtomicInteger(0)
