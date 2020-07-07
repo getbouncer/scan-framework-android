@@ -4,66 +4,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * Cache the result from calling this method. Subsequent calls, even with different parameters, will not change the
- * cached output.
- */
-private class CachedResultSuspend1<in Input, out Result>(private val f: suspend (Input) -> Result) {
-    private val initializeMutex = Mutex()
-
-    private object UNINITIALIZED_VALUE
-    @Volatile private var value: Any? = UNINITIALIZED_VALUE
-
-    fun memoize(): suspend (Input) -> Result = { input ->
-        initializeMutex.withLock {
-            if (value == UNINITIALIZED_VALUE) {
-                value = f(input)
-            }
-            @Suppress("UNCHECKED_CAST") (value as Result)
-        }
-    }
-}
-
-/**
- * Cache the result from calling this method. Subsequent calls, even with different parameters, will not change the
- * cached output.
- */
-private class CachedResultSuspend2<in Input1, in Input2, out Result>(private val f: suspend (Input1, Input2) -> Result) {
-    private val initializeMutex = Mutex()
-
-    private object UNINITIALIZED_VALUE
-    @Volatile private var value: Any? = UNINITIALIZED_VALUE
-
-    fun memoize(): suspend (Input1, Input2) -> Result = { input1, input2 ->
-        initializeMutex.withLock {
-            if (value == UNINITIALIZED_VALUE) {
-                value = f(input1, input2)
-            }
-            @Suppress("UNCHECKED_CAST") (value as Result)
-        }
-    }
-}
-
-/**
- * Cache the result from calling this method. Subsequent calls, even with different parameters, will not change the
- * cached output.
- */
-private class CachedResultSuspend3<in Input1, in Input2, in Input3, out Result>(private val f: suspend (Input1, Input2, Input3) -> Result) {
-    private val initializeMutex = Mutex()
-
-    private object UNINITIALIZED_VALUE
-    @Volatile private var value: Any? = UNINITIALIZED_VALUE
-
-    fun memoize(): suspend (Input1, Input2, Input3) -> Result = { input1, input2, input3 ->
-        initializeMutex.withLock {
-            if (value == UNINITIALIZED_VALUE) {
-                value = f(input1, input2, input3)
-            }
-            @Suppress("UNCHECKED_CAST") (value as Result)
-        }
-    }
-}
-
-/**
  * A class that memoizes the result of a suspend function. Only one coroutine will ever perform the
  * work in the suspend function, others will suspend until a result is available, and then return
  * that result.
@@ -147,57 +87,6 @@ private class MemoizeSuspend3<in Input1, in Input2, in Input3, out Result>(priva
         getMutex(input1, input2, input3).withLock {
             values.getOrPut(Triple(input1, input2, input3)) { f(input1, input2, input3) }
         }
-    }
-}
-
-/**
- * Cache the result from calling this method. Subsequent calls, even with different parameters, will not change the
- * cached output.
- */
-private class CachedResult1<in Input, out Result>(private val function: (Input) -> Result) : (Input) -> Result {
-    private object UNINITIALIZED_VALUE
-    @Volatile private var value: Any? = UNINITIALIZED_VALUE
-
-    @Synchronized
-    override fun invoke(input: Input): Result {
-        if (value == UNINITIALIZED_VALUE) {
-            value = function(input)
-        }
-        @Suppress("UNCHECKED_CAST") return (value as Result)
-    }
-}
-
-/**
- * Cache the result from calling this method. Subsequent calls, even with different parameters, will not change the
- * cached output.
- */
-private class CachedResult2<in Input1, in Input2, out Result>(private val function: (Input1, Input2) -> Result) : (Input1, Input2) -> Result {
-    private object UNINITIALIZED_VALUE
-    @Volatile private var value: Any? = UNINITIALIZED_VALUE
-
-    @Synchronized
-    override fun invoke(input1: Input1, input2: Input2): Result {
-        if (value == UNINITIALIZED_VALUE) {
-            value = function(input1, input2)
-        }
-        @Suppress("UNCHECKED_CAST") return (value as Result)
-    }
-}
-
-/**
- * Cache the result from calling this method. Subsequent calls, even with different parameters, will not change the
- * cached output.
- */
-private class CachedResult3<in Input1, in Input2, in Input3, out Result>(private val function: (Input1, Input2, Input3) -> Result) : (Input1, Input2, Input3) -> Result {
-    private object UNINITIALIZED_VALUE
-    @Volatile private var value: Any? = UNINITIALIZED_VALUE
-
-    @Synchronized
-    override fun invoke(input1: Input1, input2: Input2, input3: Input3): Result {
-        if (value == UNINITIALIZED_VALUE) {
-            value = function(input1, input2, input3)
-        }
-        @Suppress("UNCHECKED_CAST") return (value as Result)
     }
 }
 
@@ -395,30 +284,15 @@ fun <Input, Result> ((Input) -> Result).memoized(): (Input) -> Result = Memoize1
 fun <Input1, Input2, Result> ((Input1, Input2) -> Result).memoized(): (Input1, Input2) -> Result = Memoize2(this)
 fun <Input1, Input2, Input3, Result> ((Input1, Input2, Input3) -> Result).memoized(): (Input1, Input2, Input3) -> Result = Memoize3(this)
 
-fun <Result> (() -> Result).cachedResult(): () -> Result = Memoize0(this)
-fun <Input, Result> ((Input) -> Result).cachedResult(): (Input) -> Result = CachedResult1(this)
-fun <Input1, Input2, Result> ((Input1, Input2) -> Result).cachedResult(): (Input1, Input2) -> Result = CachedResult2(this)
-fun <Input1, Input2, Input3, Result> ((Input1, Input2, Input3) -> Result).cachedResult(): (Input1, Input2, Input3) -> Result = CachedResult3(this)
-
 fun <Result> (suspend () -> Result).memoizedSuspend() = MemoizeSuspend0(this).memoize()
 fun <Input, Result> (suspend (Input) -> Result).memoizedSuspend() = MemoizeSuspend1(this).memoize()
 fun <Input1, Input2, Result> (suspend (Input1, Input2) -> Result).memoizedSuspend() = MemoizeSuspend2(this).memoize()
 fun <Input1, Input2, Input3, Result> (suspend (Input1, Input2, Input3) -> Result).memoizedSuspend() = MemoizeSuspend3(this).memoize()
 
-fun <Result> (suspend () -> Result).cachedResultSuspend() = MemoizeSuspend0(this).memoize()
-fun <Input, Result> (suspend (Input) -> Result).cachedResultSuspend() = CachedResultSuspend1(this).memoize()
-fun <Input1, Input2, Result> (suspend (Input1, Input2) -> Result).cachedResultSuspend() = CachedResultSuspend2(this).memoize()
-fun <Input1, Input2, Input3, Result> (suspend (Input1, Input2, Input3) -> Result).cachedResultSuspend() = CachedResultSuspend3(this).memoize()
-
 fun <Result> memoize(f: () -> Result): () -> Result = Memoize0(f)
 fun <Input, Result> memoize(f: (Input) -> Result): (Input) -> Result = Memoize1(f)
 fun <Input1, Input2, Result> memoize(f: (Input1, Input2) -> Result): (Input1, Input2) -> Result = Memoize2(f)
 fun <Input1, Input2, Input3, Result> memoize(f: (Input1, Input2, Input3) -> Result): (Input1, Input2, Input3) -> Result = Memoize3(f)
-
-fun <Result> cacheResult(f: () -> Result): () -> Result = Memoize0(f)
-fun <Input, Result> cacheResult(f: (Input) -> Result): (Input) -> Result = CachedResult1(f)
-fun <Input1, Input2, Result> cacheResult(f: (Input1, Input2) -> Result): (Input1, Input2) -> Result = CachedResult2(f)
-fun <Input1, Input2, Input3, Result> cacheResult(f: (Input1, Input2, Input3) -> Result): (Input1, Input2, Input3) -> Result = CachedResult3(f)
 
 fun <Result> memoizeSuspend(f: suspend() -> Result): suspend () -> Result = MemoizeSuspend0(f).memoize()
 fun <Input, Result> memoizeSuspend(f: suspend(Input) -> Result): suspend (Input) -> Result = MemoizeSuspend1(f).memoize()
