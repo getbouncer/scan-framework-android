@@ -7,7 +7,6 @@ import com.getbouncer.scan.framework.AnalyzerFactory
 import com.getbouncer.scan.framework.Config
 import com.getbouncer.scan.framework.Loader
 import com.getbouncer.scan.framework.time.Timer
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.tensorflow.lite.Interpreter
@@ -34,28 +33,20 @@ abstract class TensorFlowLiteAnalyzer<Input, MLInput, Output, MLOutput>(
     }
 
     override suspend fun analyze(data: Input, state: Unit): Output {
-        val mlInput = loggingTimer.measure("transform") {
-            runBlocking {
-                transformData(data)
-            }
+        val mlInput = loggingTimer.measureSuspend("transform") {
+            transformData(data)
         }
 
-        val mlOutput = loggingTimer.measure("prepare") {
-            runBlocking {
-                buildEmptyMLOutput()
-            }
+        val mlOutput = loggingTimer.measureSuspend("prepare") {
+            buildEmptyMLOutput()
         }
 
-        loggingTimer.measure("infer") {
-            runBlocking {
-                executeInference(tfInterpreter, mlInput, mlOutput)
-            }
+        loggingTimer.measureSuspend("infer") {
+            executeInference(tfInterpreter, mlInput, mlOutput)
         }
 
-        return loggingTimer.measure("interpret") {
-            runBlocking {
-                interpretMLOutput(data, mlOutput)
-            }
+        return loggingTimer.measureSuspend("interpret") {
+            interpretMLOutput(data, mlOutput)
         }
     }
 

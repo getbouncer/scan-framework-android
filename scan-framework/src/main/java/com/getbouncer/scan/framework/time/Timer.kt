@@ -23,10 +23,14 @@ sealed class Timer {
     }
 
     abstract fun <T> measure(taskName: String? = null, task: () -> T): T
+
+    abstract suspend fun <T> measureSuspend(taskName: String? = null, task: suspend () -> T): T
 }
 
 private object NoOpTimer : Timer() {
     override fun <T> measure(taskName: String?, task: () -> T): T = task()
+
+    override suspend fun <T> measureSuspend(taskName: String?, task: suspend () -> T): T = task()
 }
 
 private class LoggingTimer(
@@ -39,6 +43,25 @@ private class LoggingTimer(
     private var updateClock = Clock.markNow()
 
     override fun <T> measure(taskName: String?, task: () -> T): T {
+        val (duration, result) = measureTimeWithResult { task() }
+
+        executionCount++
+        executionTotalDuration += duration
+
+        if (updateClock.elapsedSince() > updateInterval) {
+            updateClock = Clock.markNow()
+            Log.d(
+                tag,
+                "$name${if (!taskName.isNullOrEmpty()) ".$taskName" else ""} executing on " +
+                    "thread ${Thread.currentThread().name} " +
+                    "AT ${executionCount / executionTotalDuration.inSeconds} FPS, " +
+                    "${executionTotalDuration.inMilliseconds / executionCount} MS/F"
+            )
+        }
+        return result
+    }
+
+    override suspend fun <T> measureSuspend(taskName: String?, task: suspend () -> T): T {
         val (duration, result) = measureTimeWithResult { task() }
 
         executionCount++
