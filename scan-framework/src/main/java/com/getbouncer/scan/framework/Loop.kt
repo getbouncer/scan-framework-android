@@ -104,7 +104,7 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
     protected suspend fun unsubscribeFromFlow() = cancelMutex.withLock {
         workerJob?.apply { if (isActive) { cancel() } }
         started.set(false)
-        finished = true
+        finished = false
     }
 
     /**
