@@ -8,6 +8,7 @@ import com.getbouncer.scan.framework.Config
 import com.getbouncer.scan.framework.NetworkConfig
 import com.getbouncer.scan.framework.time.Timer
 import com.getbouncer.scan.framework.util.DeviceIds
+import com.getbouncer.scan.framework.util.cacheFirstResult
 import com.getbouncer.scan.framework.util.getAppPackageName
 import com.getbouncer.scan.framework.util.getDeviceName
 import com.getbouncer.scan.framework.util.getOsVersion
@@ -314,7 +315,7 @@ private val buildDeviceId = memoize { context: Context ->
     }
 }
 
-private val buildUserAgent = memoize { context: Context ->
+private val buildUserAgent = cacheFirstResult { context: Context ->
     "bouncer/${getPlatform()}/${getAppPackageName(context)}/${getDeviceName()}/${getOsVersion()}/${getSdkVersion()}/${getSdkFlavor()}"
 }
 
