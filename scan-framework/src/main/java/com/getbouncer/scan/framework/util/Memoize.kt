@@ -168,6 +168,117 @@ private class Memoize3<in Input1, in Input2, in Input3, out Result>(private val 
     }
 }
 
+/**
+ * Cache the result from calling this method. Subsequent calls, even with different parameters, will not change the
+ * cached output.
+ */
+private class CachedFirstResultSuspend1<in Input, out Result>(private val f: suspend (Input) -> Result) {
+    private val initializeMutex = Mutex()
+
+    private object UNINITIALIZED_VALUE
+    @Volatile private var value: Any? = UNINITIALIZED_VALUE
+
+    fun cacheFirstResult(): suspend (Input) -> Result = { input ->
+        initializeMutex.withLock {
+            if (value == UNINITIALIZED_VALUE) {
+                value = f(input)
+            }
+            @Suppress("UNCHECKED_CAST") (value as Result)
+        }
+    }
+}
+
+/**
+ * Cache the result from calling this method. Subsequent calls, even with different parameters, will not change the
+ * cached output.
+ */
+private class CachedFirstResultSuspend2<in Input1, in Input2, out Result>(private val f: suspend (Input1, Input2) -> Result) {
+    private val initializeMutex = Mutex()
+
+    private object UNINITIALIZED_VALUE
+    @Volatile private var value: Any? = UNINITIALIZED_VALUE
+
+    fun cacheFirstResult(): suspend (Input1, Input2) -> Result = { input1, input2 ->
+        initializeMutex.withLock {
+            if (value == UNINITIALIZED_VALUE) {
+                value = f(input1, input2)
+            }
+            @Suppress("UNCHECKED_CAST") (value as Result)
+        }
+    }
+}
+
+/**
+ * Cache the result from calling this method. Subsequent calls, even with different parameters, will not change the
+ * cached output.
+ */
+private class CachedFirstResultSuspend3<in Input1, in Input2, in Input3, out Result>(private val f: suspend (Input1, Input2, Input3) -> Result) {
+    private val initializeMutex = Mutex()
+
+    private object UNINITIALIZED_VALUE
+    @Volatile private var value: Any? = UNINITIALIZED_VALUE
+
+    fun cacheFirstResult(): suspend (Input1, Input2, Input3) -> Result = { input1, input2, input3 ->
+        initializeMutex.withLock {
+            if (value == UNINITIALIZED_VALUE) {
+                value = f(input1, input2, input3)
+            }
+            @Suppress("UNCHECKED_CAST") (value as Result)
+        }
+    }
+}
+
+/**
+ * Cache the result from calling this method. Subsequent calls, even with different parameters, will not change the
+ * cached output.
+ */
+private class CachedFirstResult1<in Input, out Result>(private val function: (Input) -> Result) : (Input) -> Result {
+    private object UNINITIALIZED_VALUE
+    @Volatile private var value: Any? = UNINITIALIZED_VALUE
+
+    @Synchronized
+    override fun invoke(input: Input): Result {
+        if (value == UNINITIALIZED_VALUE) {
+            value = function(input)
+        }
+        @Suppress("UNCHECKED_CAST") return (value as Result)
+    }
+}
+
+/**
+ * Cache the result from calling this method. Subsequent calls, even with different parameters, will not change the
+ * cached output.
+ */
+private class CachedFirstResult2<in Input1, in Input2, out Result>(private val function: (Input1, Input2) -> Result) : (Input1, Input2) -> Result {
+    private object UNINITIALIZED_VALUE
+    @Volatile private var value: Any? = UNINITIALIZED_VALUE
+
+    @Synchronized
+    override fun invoke(input1: Input1, input2: Input2): Result {
+        if (value == UNINITIALIZED_VALUE) {
+            value = function(input1, input2)
+        }
+        @Suppress("UNCHECKED_CAST") return (value as Result)
+    }
+}
+
+/**
+ * Cache the result from calling this method. Subsequent calls, even with different parameters, will not change the
+ * cached output.
+ */
+private class CachedFirstResult3<in Input1, in Input2, in Input3, out Result>(private val function: (Input1, Input2, Input3) -> Result) : (Input1, Input2, Input3) -> Result {
+    private object UNINITIALIZED_VALUE
+    @Volatile private var value: Any? = UNINITIALIZED_VALUE
+
+    @Synchronized
+    override fun invoke(input1: Input1, input2: Input2, input3: Input3): Result {
+        if (value == UNINITIALIZED_VALUE) {
+            value = function(input1, input2, input3)
+        }
+        @Suppress("UNCHECKED_CAST") return (value as Result)
+    }
+}
+
 fun <Result> (() -> Result).memoized(): () -> Result = Memoize0(this)
 fun <Input, Result> ((Input) -> Result).memoized(): (Input) -> Result = Memoize1(this)
 fun <Input1, Input2, Result> ((Input1, Input2) -> Result).memoized(): (Input1, Input2) -> Result = Memoize2(this)
@@ -187,3 +298,23 @@ fun <Result> memoizeSuspend(f: suspend() -> Result): suspend () -> Result = Memo
 fun <Input, Result> memoizeSuspend(f: suspend(Input) -> Result): suspend (Input) -> Result = MemoizeSuspend1(f).memoize()
 fun <Input1, Input2, Result> memoizeSuspend(f: suspend(Input1, Input2) -> Result): suspend (Input1, Input2) -> Result = MemoizeSuspend2(f).memoize()
 fun <Input1, Input2, Input3, Result> memoizeSuspend(f: suspend(Input1, Input2, Input3) -> Result): suspend (Input1, Input2, Input3) -> Result = MemoizeSuspend3(f).memoize()
+
+fun <Result> (() -> Result).cachedFirstResult(): () -> Result = Memoize0(this)
+fun <Input, Result> ((Input) -> Result).cachedFirstResult(): (Input) -> Result = CachedFirstResult1(this)
+fun <Input1, Input2, Result> ((Input1, Input2) -> Result).cachedFirstResult(): (Input1, Input2) -> Result = CachedFirstResult2(this)
+fun <Input1, Input2, Input3, Result> ((Input1, Input2, Input3) -> Result).cachedFirstResult(): (Input1, Input2, Input3) -> Result = CachedFirstResult3(this)
+
+fun <Result> (suspend () -> Result).cachedFirstResultSuspend() = MemoizeSuspend0(this).memoize()
+fun <Input, Result> (suspend (Input) -> Result).cachedFirstResultSuspend() = CachedFirstResultSuspend1(this).cacheFirstResult()
+fun <Input1, Input2, Result> (suspend (Input1, Input2) -> Result).cachedFirstResultSuspend() = CachedFirstResultSuspend2(this).cacheFirstResult()
+fun <Input1, Input2, Input3, Result> (suspend (Input1, Input2, Input3) -> Result).cachedFirstResultSuspend() = CachedFirstResultSuspend3(this).cacheFirstResult()
+
+fun <Result> cacheFirstResult(f: () -> Result): () -> Result = Memoize0(f)
+fun <Input, Result> cacheFirstResult(f: (Input) -> Result): (Input) -> Result = CachedFirstResult1(f)
+fun <Input1, Input2, Result> cacheFirstResult(f: (Input1, Input2) -> Result): (Input1, Input2) -> Result = CachedFirstResult2(f)
+fun <Input1, Input2, Input3, Result> cacheFirstResult(f: (Input1, Input2, Input3) -> Result): (Input1, Input2, Input3) -> Result = CachedFirstResult3(f)
+
+fun <Result> cacheFirstResultSuspend(f: suspend() -> Result) = MemoizeSuspend0(f).memoize()
+fun <Input, Result> cacheFirstResultSuspend(f: suspend(Input) -> Result) = CachedFirstResultSuspend1(f).cacheFirstResult()
+fun <Input1, Input2, Result> cacheFirstResultSuspend(f: suspend(Input1, Input2) -> Result) = CachedFirstResultSuspend2(f).cacheFirstResult()
+fun <Input1, Input2, Input3, Result> cacheFirstResultSuspend(f: suspend(Input1, Input2, Input3) -> Result) = CachedFirstResultSuspend3(f).cacheFirstResult()
