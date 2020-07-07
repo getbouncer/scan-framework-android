@@ -71,10 +71,7 @@ sealed class AnalyzerLoop<DataFrame, State, Output>(
 
     private var workerJob: Job? = null
 
-    protected fun subscribeToFlow(
-        flow: Flow<DataFrame>,
-        processingCoroutineScope: CoroutineScope
-    ): Job? {
+    protected fun subscribeToFlow(flow: Flow<DataFrame>, processingCoroutineScope: CoroutineScope): Job? {
         if (!started.getAndSet(true)) {
             startedAt = Clock.markNow()
         } else {
@@ -189,10 +186,7 @@ class ProcessBoundAnalyzerLoop<DataFrame, State, Output>(
      */
     fun unsubscribe() = runBlocking { unsubscribeFromFlow() }
 
-    override suspend fun onResult(
-        result: Output,
-        data: DataFrame
-    ) = resultHandler.onResult(result, data)
+    override suspend fun onResult(result: Output, data: DataFrame) = resultHandler.onResult(result, data)
 
     override fun getState(): State = resultHandler.state
 }
@@ -231,10 +225,7 @@ class FiniteAnalyzerLoop<DataFrame, State, Output>(
         }
     }
 
-    override suspend fun onResult(
-        result: Output,
-        data: DataFrame
-    ): Boolean {
+    override suspend fun onResult(result: Output, data: DataFrame): Boolean {
         val framesProcessed = this.framesProcessed.incrementAndGet()
         val timeElapsed = startedAt?.elapsedSince() ?: Duration.ZERO
         resultHandler.onResult(result, data)
@@ -264,9 +255,9 @@ class FiniteAnalyzerLoop<DataFrame, State, Output>(
 }
 
 /**
- * Consume this [Flow] using a channelFlow with no buffer. Elements emitted from [this] flow
- * are offered to the underlying [channelFlow]. If the consumer is not currently suspended and
- * waiting for the next element, the element is dropped.
+ * Consume this [Flow] using a channelFlow with no buffer. Elements emitted from [this] flow are offered to the
+ * underlying [channelFlow]. If the consumer is not currently suspended and waiting for the next element, the element is
+ * dropped.
  *
  * example:
  * ```
@@ -285,4 +276,4 @@ class FiniteAnalyzerLoop<DataFrame, State, Output>(
  */
 @ExperimentalCoroutinesApi
 suspend fun <T> Flow<T>.backPressureDrop(): Flow<T> =
-    channelFlow { collect { offer(it) } }.buffer(capacity = Channel.RENDEZVOUS)
+    channelFlow { this@backPressureDrop.collect { offer(it) } }.buffer(capacity = Channel.RENDEZVOUS)
