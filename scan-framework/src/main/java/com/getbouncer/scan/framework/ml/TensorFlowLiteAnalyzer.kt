@@ -1,4 +1,3 @@
-
 package com.getbouncer.scan.framework.ml
 
 import android.util.Log
