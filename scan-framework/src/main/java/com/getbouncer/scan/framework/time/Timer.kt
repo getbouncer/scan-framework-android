@@ -24,13 +24,7 @@ sealed class Timer {
     }
 
     fun <T> measure(taskName: String? = null, task: () -> T): T = runBlocking {
-        suspend fun suspendTask(): T {
-            return task()
-        }
-
-        measureSuspend<T>(taskName) {
-            suspendTask()
-        }
+        measureSuspend { task() }
     }
 
     abstract suspend fun <T> measureSuspend(taskName: String? = null, task: suspend () -> T): T
