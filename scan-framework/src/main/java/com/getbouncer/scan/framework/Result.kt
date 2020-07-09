@@ -22,18 +22,29 @@ import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.max
 
 /**
- * A specialized result handler for loops. This handler can update the state of the loop, including asking for
- * termination.
+ * A result handler for data processing. This is called when results are available from an [Analyzer].
  */
-interface StateUpdatingResultHandler<Input, State, Output> {
-    suspend fun onResult(result: Output, state: State, data: Input, updateState: (State) -> Unit)
+interface ResultHandler<Input, Output, Verdict> {
+    suspend fun onResult(result: Output, data: Input): Verdict
 }
 
 /**
- * A result handler for data processing. This is called when results are available from an [Analyzer].
+ * A specialized result handler that has some form of state.
  */
-interface ResultHandler<Input, State, Output> {
-    suspend fun onResult(result: Output, state: State, data: Input)
+abstract class StatefulResultHandler<Input, State, Output, Verdict>(
+    private var initialState: State
+) : ResultHandler<Input, Output, Verdict> {
+
+    /**
+     * The state of the result handler. This can be read, but not updated by analyzers.
+     */
+    var state: State = initialState
+        protected set
+
+    /**
+     * Reset the state to the initial value.
+     */
+    protected open fun reset() { state = initialState }
 }
 
 /**
@@ -70,16 +81,18 @@ interface AggregateResultListener<DataFrame, State, InterimResult, FinalResult> 
 /**
  * A result handler with a method that notifies when all data has been processed.
  */
-interface TerminatingResultHandler<Input, State, Output> : ResultHandler<Input, State, Output> {
+abstract class TerminatingResultHandler<Input, State, Output>(
+    initialState: State
+) : StatefulResultHandler<Input, State, Output, Unit>(initialState) {
     /**
      * All data has been processed and termination was reached.
      */
-    suspend fun onAllDataProcessed()
+    abstract suspend fun onAllDataProcessed()
 
     /**
      * Not all data was processed before termination.
      */
-    suspend fun onTerminatedEarly()
+    abstract suspend fun onTerminatedEarly()
 }
 
 /**
@@ -201,9 +214,9 @@ data class ResultAggregatorConfig internal constructor(
  */
 abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult, FinalResult>(
     private val config: ResultAggregatorConfig,
-    private val listener: AggregateResultListener<DataFrame, State, InterimResult, FinalResult>
-) : StateUpdatingResultHandler<DataFrame, LoopState<State>, AnalyzerResult>, LifecycleObserver {
-
+    private val listener: AggregateResultListener<DataFrame, State, InterimResult, FinalResult>,
+    initialState: State
+) : StatefulResultHandler<DataFrame, State, AnalyzerResult, Boolean>(initialState), LifecycleObserver {
     private var firstResultTime: ClockMark? = null
     private var firstFrameTime: ClockMark? = null
     private var lastNotifyTime: ClockMark = Clock.markNow()
@@ -234,7 +247,7 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
     @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
     private fun resetAndPause() {
         isPaused = true
-        runBlocking { reset() }
+        reset()
     }
 
     /**
@@ -251,7 +264,7 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
      */
     fun cancel() {
         isCanceled = true
-        runBlocking { reset() }
+        reset()
     }
 
     /**
@@ -266,65 +279,62 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
      * Reset the state of the aggregator. This is useful for aggregating data that can become invalid, such as when a
      * user is scanning an object, and moves the object away from the camera before the scan has completed.
      */
-    protected open suspend fun reset() {
+    override fun reset() {
+        super.reset()
         firstResultTime = null
         firstFrameTime = null
         haveSeenValidResult.set(false)
         totalFramesProcessed.set(0)
         framesProcessedSinceLastUpdate.set(0)
 
-        saveFrameMutex.withLock {
-            savedFrames.clear()
-            savedFramesSizeBytes.clear()
+        runBlocking {
+            saveFrameMutex.withLock {
+                savedFrames.clear()
+                savedFramesSizeBytes.clear()
+            }
         }
 
-        listener.onReset()
+        runBlocking { listener.onReset() }
     }
 
-    override suspend fun onResult(
-        result: AnalyzerResult,
-        state: LoopState<State>,
-        data: DataFrame,
-        updateState: (LoopState<State>) -> Unit
-    ) {
-        if (state.finished || isPaused || isCanceled || isFinished) {
-            return
-        }
+    override suspend fun onResult(result: AnalyzerResult, data: DataFrame): Boolean = when {
+        isPaused -> false
+        isCanceled || isFinished -> true
+        else -> {
+            withContext(Dispatchers.Default) {
+                if (config.trackFrameRate) {
+                    trackAndNotifyOfFrameRate()
+                }
 
-        withContext(Dispatchers.Default) {
-            if (config.trackFrameRate) {
-                trackAndNotifyOfFrameRate()
-            }
-
-            val resultPair = aggregateResult(
-                result = result,
-                state = state.state,
-                startAggregationTimer = {
-                    if (firstResultTime == null) {
-                        firstResultTime = Clock.markNow()
-                    }
-                },
-                mustReturnFinal = hasReachedTimeout(),
-                updateState = { updateState(state.copy(state = it)) }
-            )
-            val interimResult = resultPair.first
-            val finalResult = resultPair.second
-
-            saveFrames(interimResult, state.state, data)
-
-            launch {
-                listener.onInterimResult(
-                    result = interimResult,
-                    state = state.state,
-                    frame = data
+                val resultPair = aggregateResult(
+                    result = result,
+                    startAggregationTimer = {
+                        if (firstResultTime == null) {
+                            firstResultTime = Clock.markNow()
+                        }
+                    },
+                    mustReturnFinal = hasReachedTimeout()
                 )
-            }
+                val interimResult = resultPair.first
+                val finalResult = resultPair.second
 
-            aggregatorExecutionStats.trackResult("frame_processed")
-            if (finalResult != null) {
-                isFinished = true
-                updateState(state.copy(finished = true))
-                launch { listener.onResult(finalResult, savedFrames) }
+                saveFrames(interimResult, data)
+
+                launch {
+                    listener.onInterimResult(
+                        result = interimResult,
+                        state = state,
+                        frame = data
+                    )
+                }
+
+                aggregatorExecutionStats.trackResult("frame_processed")
+                if (finalResult != null) {
+                    isFinished = true
+                    launch { listener.onResult(finalResult, savedFrames) }
+                }
+
+                isFinished
             }
         }
     }
@@ -337,7 +347,7 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
      * number or total size exceeds the maximum allowed in the aggregator configuration, the oldest frames will be
      * dropped.
      */
-    private suspend fun saveFrames(result: InterimResult, state: State, data: DataFrame) {
+    private suspend fun saveFrames(result: InterimResult, data: DataFrame) {
         val savedFrameType = getSaveFrameIdentifier(result, data) ?: return
         return saveFrameMutex.withLock {
             val typedSavedFrames = savedFrames[savedFrameType] ?: LinkedList()
@@ -373,17 +383,13 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
      * [AnalyzerResult], the aggregator will stop listening for new results.
      *
      * @param result: The result to aggregate
-     * @param state: The loop state
      * @param startAggregationTimer: When called, the maximum aggregation timer starts.
      * @param mustReturnFinal: If true, this method must return a final result
-     * @param updateState: A function to use to update the state
      */
     abstract suspend fun aggregateResult(
         result: AnalyzerResult,
-        state: State,
         startAggregationTimer: () -> Unit,
-        mustReturnFinal: Boolean,
-        updateState: (State) -> Unit
+        mustReturnFinal: Boolean
     ): Pair<InterimResult, FinalResult?>
 
     /**
@@ -449,13 +455,13 @@ abstract class ResultAggregator<DataFrame, State, AnalyzerResult, InterimResult,
         val overallFps = if (overallRate.duration != Duration.ZERO) {
             overallRate.amount / overallRate.duration.inSeconds
         } else {
-            0.0F
+            0.0
         }
 
         val instantFps = if (instantRate.duration != Duration.ZERO) {
             instantRate.amount / instantRate.duration.inSeconds
         } else {
-            0.0F
+            0.0
         }
 
         if (Config.isDebug) {

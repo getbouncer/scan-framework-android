@@ -29,18 +29,11 @@ class LoopTest {
         val dataCount = 3
         val resultCount = AtomicInteger(0)
 
-        class TestResultHandler : StateUpdatingResultHandler<Int, LoopState<Int>, String> {
-            override suspend fun onResult(
-                result: String,
-                state: LoopState<Int>,
-                data: Int,
-                updateState: (LoopState<Int>) -> Unit
-            ) {
-                assertEquals(1, state.state)
+        class TestResultHandler : StatefulResultHandler<Int, Int, String, Boolean>(1) {
+            override suspend fun onResult(result: String, data: Int): Boolean {
+                assertEquals(1, state)
                 val count = resultCount.incrementAndGet()
-                if (count >= dataCount) {
-                    updateState(state.copy(finished = true))
-                }
+                return count >= dataCount
             }
         }
 
@@ -51,9 +44,10 @@ class LoopTest {
 
         val loop = ProcessBoundAnalyzerLoop(
             analyzerPool = analyzerPool,
-            onAnalyzerFailure = { fail() },
-            onResultFailure = { fail() },
-            initialState = 1,
+            analyzerLoopErrorListener = object : AnalyzerLoopErrorListener {
+                override fun onAnalyzerFailure(t: Throwable): Boolean { fail(t.message) }
+                override fun onResultFailure(t: Throwable): Boolean { fail(t.message) }
+            },
             name = "TestAnalyzerLoop",
             resultHandler = TestResultHandler()
         )
@@ -85,21 +79,14 @@ class LoopTest {
             dataToProcess[it] = false
         }
 
-        class TestResultHandler : StateUpdatingResultHandler<Int, LoopState<Int>, String> {
-            override suspend fun onResult(
-                result: String,
-                state: LoopState<Int>,
-                data: Int,
-                updateState: (LoopState<Int>) -> Unit
-            ) {
+        class TestResultHandler : StatefulResultHandler<Int, Int, String, Boolean>(1) {
+            override suspend fun onResult(result: String, data: Int): Boolean {
                 dataProcessMutex.withLock {
                     resultCount++
-                    assertEquals(1, state.state)
+                    assertEquals(1, state)
                     assertTrue { dataToProcess[data] == false }
                     dataToProcess[data] = true
-                    if (resultCount >= dataCount) {
-                        updateState(state.copy(finished = true))
-                    }
+                    return resultCount >= dataCount
                 }
             }
         }
@@ -111,9 +98,10 @@ class LoopTest {
 
         val loop = ProcessBoundAnalyzerLoop(
             analyzerPool = analyzerPool,
-            onAnalyzerFailure = { fail() },
-            onResultFailure = { fail() },
-            initialState = 1,
+            analyzerLoopErrorListener = object : AnalyzerLoopErrorListener {
+                override fun onAnalyzerFailure(t: Throwable): Boolean { fail(t.message) }
+                override fun onResultFailure(t: Throwable): Boolean { fail(t.message) }
+            },
             name = "TestAnalyzerLoop",
             resultHandler = TestResultHandler()
         )
@@ -143,14 +131,10 @@ class LoopTest {
     fun processBoundAnalyzerLoop_noAnalyzersAvailable() = runBlockingTest {
         var analyzerFailure = false
 
-        class TestResultHandler : StateUpdatingResultHandler<Int, LoopState<Int>, String> {
-            override suspend fun onResult(
-                result: String,
-                state: LoopState<Int>,
-                data: Int,
-                updateState: (LoopState<Int>) -> Unit
-            ) {
-                assertEquals(1, state.state)
+        class TestResultHandler : StatefulResultHandler<Int, Int, String, Boolean>(1) {
+            override suspend fun onResult(result: String, data: Int): Boolean {
+                assertEquals(1, state)
+                return false
             }
         }
 
@@ -161,9 +145,10 @@ class LoopTest {
 
         val loop = ProcessBoundAnalyzerLoop(
             analyzerPool = analyzerPool,
-            onAnalyzerFailure = { analyzerFailure = true; true },
-            onResultFailure = { fail() },
-            initialState = 1,
+            analyzerLoopErrorListener = object : AnalyzerLoopErrorListener {
+                override fun onAnalyzerFailure(t: Throwable): Boolean { analyzerFailure = true; return true }
+                override fun onResultFailure(t: Throwable): Boolean { fail(t.message) }
+            },
             name = "TestAnalyzerLoop",
             resultHandler = TestResultHandler()
         )
@@ -182,8 +167,8 @@ class LoopTest {
         var dataProcessed = false
         val resultCount = AtomicInteger(0)
 
-        class TestResultHandler : TerminatingResultHandler<Int, Int, String> {
-            override suspend fun onResult(result: String, state: Int, data: Int) {
+        class TestResultHandler : TerminatingResultHandler<Int, Int, String>(1) {
+            override suspend fun onResult(result: String, data: Int) {
                 assertEquals(1, state)
                 resultCount.incrementAndGet()
             }
@@ -205,9 +190,10 @@ class LoopTest {
 
         val loop = FiniteAnalyzerLoop(
             analyzerPool = analyzerPool,
-            onAnalyzerFailure = { fail(it.message) },
-            onResultFailure = { fail(it.message) },
-            initialState = 1,
+            analyzerLoopErrorListener = object : AnalyzerLoopErrorListener {
+                override fun onAnalyzerFailure(t: Throwable): Boolean { fail(t.message) }
+                override fun onResultFailure(t: Throwable): Boolean { fail(t.message) }
+            },
             name = "TestAnalyzerLoop",
             resultHandler = TestResultHandler(),
             timeLimit = Duration.INFINITE
@@ -228,8 +214,8 @@ class LoopTest {
         val resultCount = AtomicInteger(0)
         var terminatedEarly = false
 
-        class TestResultHandler : TerminatingResultHandler<Int, Int, String> {
-            override suspend fun onResult(result: String, state: Int, data: Int) {
+        class TestResultHandler : TerminatingResultHandler<Int, Int, String>(1) {
+            override suspend fun onResult(result: String, data: Int) {
                 assertEquals(1, state)
                 resultCount.incrementAndGet()
             }
@@ -251,9 +237,10 @@ class LoopTest {
 
         val loop = FiniteAnalyzerLoop(
             analyzerPool = analyzerPool,
-            onAnalyzerFailure = { fail() },
-            onResultFailure = { fail() },
-            initialState = 1,
+            analyzerLoopErrorListener = object : AnalyzerLoopErrorListener {
+                override fun onAnalyzerFailure(t: Throwable): Boolean { fail(t.message) }
+                override fun onResultFailure(t: Throwable): Boolean { fail(t.message) }
+            },
             name = "TestAnalyzerLoop",
             resultHandler = TestResultHandler(),
             timeLimit = 1.nanoseconds
@@ -272,8 +259,8 @@ class LoopTest {
     fun finiteAnalyzerLoop_analyzeDataNoData() = runBlockingTest {
         var dataProcessed = false
 
-        class TestResultHandler : TerminatingResultHandler<Int, Int, String> {
-            override suspend fun onResult(result: String, state: Int, data: Int) { fail() }
+        class TestResultHandler : TerminatingResultHandler<Int, Int, String>(1) {
+            override suspend fun onResult(result: String, data: Int) { fail() }
 
             override suspend fun onAllDataProcessed() { dataProcessed = true }
 
@@ -287,9 +274,10 @@ class LoopTest {
 
         val loop = FiniteAnalyzerLoop(
             analyzerPool = analyzerPool,
-            onAnalyzerFailure = { fail(it.message) },
-            onResultFailure = { fail(it.message) },
-            initialState = 1,
+            analyzerLoopErrorListener = object : AnalyzerLoopErrorListener {
+                override fun onAnalyzerFailure(t: Throwable): Boolean { fail(t.message) }
+                override fun onResultFailure(t: Throwable): Boolean { fail(t.message) }
+            },
             name = "TestAnalyzerLoop",
             resultHandler = TestResultHandler(),
             timeLimit = Duration.INFINITE

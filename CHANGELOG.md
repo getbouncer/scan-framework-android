@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.0.0013](https://github.com/getbouncer/scan-framework-android/tree/2.0.0013) (2020-07-08)
+
+[Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0012...2.0.0013)
+
+**Merged pull requests:**
+
+- Relocate loop state to result [\#56](https://github.com/getbouncer/scan-framework-android/pull/56) ([awushensky](https://github.com/awushensky))
+- Add more memoize functions [\#55](https://github.com/getbouncer/scan-framework-android/pull/55) ([awushensky](https://github.com/awushensky))
+- Separate error listeners [\#54](https://github.com/getbouncer/scan-framework-android/pull/54) ([awushensky](https://github.com/awushensky))
+- Fix work leak [\#52](https://github.com/getbouncer/scan-framework-android/pull/52) ([awushensky](https://github.com/awushensky))
+- Test duration [\#51](https://github.com/getbouncer/scan-framework-android/pull/51) ([awushensky](https://github.com/awushensky))
+- Clean up network responses [\#49](https://github.com/getbouncer/scan-framework-android/pull/49) ([awushensky](https://github.com/awushensky))
+- Add exceptions to retry [\#48](https://github.com/getbouncer/scan-framework-android/pull/48) ([awushensky](https://github.com/awushensky))
+- Bump ktlint from 0.37.0 to 0.37.2 [\#46](https://github.com/getbouncer/scan-framework-android/pull/46) ([dependabot-preview[bot]](https://github.com/apps/dependabot-preview))
+- Add device identifier to network requests [\#45](https://github.com/getbouncer/scan-framework-android/pull/45) ([awushensky](https://github.com/awushensky))
+- Standardize local file name [\#44](https://github.com/getbouncer/scan-framework-android/pull/44) ([awushensky](https://github.com/awushensky))
+- Add some convenience functions [\#43](https://github.com/getbouncer/scan-framework-android/pull/43) ([xsl](https://github.com/xsl))
+
 ## [2.0.0012](https://github.com/getbouncer/scan-framework-android/tree/2.0.0012) (2020-06-15)
 
 [Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0011...2.0.0012)
@@ -34,6 +52,7 @@
 
 - Terminate a finite loop that has no data [\#30](https://github.com/getbouncer/scan-framework-android/pull/30) ([awushensky](https://github.com/awushensky))
 - Bump gradle from 3.6.3 to 4.0.0 [\#29](https://github.com/getbouncer/scan-framework-android/pull/29) ([dependabot-preview[bot]](https://github.com/apps/dependabot-preview))
+- Bump core-ktx from 1.2.0 to 1.3.0 [\#28](https://github.com/getbouncer/scan-framework-android/pull/28) ([dependabot-preview[bot]](https://github.com/apps/dependabot-preview))
 
 ## [2.0.0009](https://github.com/getbouncer/scan-framework-android/tree/2.0.0009) (2020-05-29)
 
@@ -41,7 +60,6 @@
 
 **Merged pull requests:**
 
-- Bump core-ktx from 1.2.0 to 1.3.0 [\#28](https://github.com/getbouncer/scan-framework-android/pull/28) ([dependabot-preview[bot]](https://github.com/apps/dependabot-preview))
 - Start aggregation timer on valid result [\#27](https://github.com/getbouncer/scan-framework-android/pull/27) ([awushensky](https://github.com/awushensky))
 - Stop ignoring scan timeout [\#26](https://github.com/getbouncer/scan-framework-android/pull/26) ([awushensky](https://github.com/awushensky))
 - Simplify results [\#25](https://github.com/getbouncer/scan-framework-android/pull/25) ([awushensky](https://github.com/awushensky))

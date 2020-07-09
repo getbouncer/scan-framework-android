@@ -45,7 +45,7 @@ data class TaskStatistics(
 ) {
     companion object {
         fun fromTaskStats(taskStats: TaskStats) = TaskStatistics(
-            startedAtMs = taskStats.started.inMillisecondsSinceEpoch(),
+            startedAtMs = taskStats.started.toMillisecondsSinceEpoch(),
             durationMs = taskStats.duration.inMilliseconds.toLong(),
             result = taskStats.result
         )
@@ -66,7 +66,7 @@ data class RepeatingTaskStatistics(
     companion object {
         fun fromRepeatingTaskStats(repeatingTaskStats: RepeatingTaskStats) = RepeatingTaskStatistics(
             executions = repeatingTaskStats.executions,
-            startTimeMs = repeatingTaskStats.startedAt.inMillisecondsSinceEpoch(),
+            startTimeMs = repeatingTaskStats.startedAt.toMillisecondsSinceEpoch(),
             totalDurationMs = repeatingTaskStats.totalDuration.inMilliseconds.toLong(),
             totalCpuDurationMs = repeatingTaskStats.totalCpuDuration.inMilliseconds.toLong(),
             averageDurationMs = repeatingTaskStats.averageDuration().inMilliseconds.toLong(),
