@@ -19,32 +19,32 @@ abstract class TensorFlowLiteAnalyzer<Input, MLInput, Output, MLOutput>(
     private val debug: Boolean = false
 ) : Analyzer<Input, Unit, Output> {
 
-    protected abstract fun buildEmptyMLOutput(): MLOutput
+    protected abstract suspend fun buildEmptyMLOutput(): MLOutput
 
-    protected abstract fun interpretMLOutput(data: Input, mlOutput: MLOutput): Output
+    protected abstract suspend fun interpretMLOutput(data: Input, mlOutput: MLOutput): Output
 
-    protected abstract fun transformData(data: Input): MLInput
+    protected abstract suspend fun transformData(data: Input): MLInput
 
-    protected abstract fun executeInference(tfInterpreter: Interpreter, data: MLInput, mlOutput: MLOutput)
+    protected abstract suspend fun executeInference(tfInterpreter: Interpreter, data: MLInput, mlOutput: MLOutput)
 
     private val loggingTimer by lazy {
         Timer.newInstance(Config.logTag, "$name ${this::class.java.simpleName}", enabled = debug)
     }
 
     override suspend fun analyze(data: Input, state: Unit): Output {
-        val mlInput = loggingTimer.measure("transform") {
+        val mlInput = loggingTimer.measureSuspend("transform") {
             transformData(data)
         }
 
-        val mlOutput = loggingTimer.measure("prepare") {
+        val mlOutput = loggingTimer.measureSuspend("prepare") {
             buildEmptyMLOutput()
         }
 
-        loggingTimer.measure("infer") {
+        loggingTimer.measureSuspend("infer") {
             executeInference(tfInterpreter, mlInput, mlOutput)
         }
 
-        return loggingTimer.measure("interpret") {
+        return loggingTimer.measureSuspend("interpret") {
             interpretMLOutput(data, mlOutput)
         }
     }
