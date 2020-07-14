@@ -1,6 +1,5 @@
 package com.getbouncer.scan.framework
 
-import androidx.test.filters.LargeTest
 import androidx.test.filters.MediumTest
 import androidx.test.filters.SmallTest
 import com.getbouncer.scan.framework.time.Duration
