@@ -1,11 +1,20 @@
 # Changelog
 
+## [2.0.0014](https://github.com/getbouncer/scan-framework-android/tree/2.0.0014) (2020-07-14)
+
+[Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0013...2.0.0014)
+
+**Merged pull requests:**
+
+- Image fragmentation [\#53](https://github.com/getbouncer/scan-framework-android/pull/53) ([smkuhne](https://github.com/smkuhne))
+
 ## [2.0.0013](https://github.com/getbouncer/scan-framework-android/tree/2.0.0013) (2020-07-08)
 
 [Full Changelog](https://github.com/getbouncer/scan-framework-android/compare/2.0.0012...2.0.0013)
 
 **Merged pull requests:**
 
+- Add more java interoperability [\#57](https://github.com/getbouncer/scan-framework-android/pull/57) ([awushensky](https://github.com/awushensky))
 - Relocate loop state to result [\#56](https://github.com/getbouncer/scan-framework-android/pull/56) ([awushensky](https://github.com/awushensky))
 - Add more memoize functions [\#55](https://github.com/getbouncer/scan-framework-android/pull/55) ([awushensky](https://github.com/awushensky))
 - Separate error listeners [\#54](https://github.com/getbouncer/scan-framework-android/pull/54) ([awushensky](https://github.com/awushensky))
@@ -52,7 +61,6 @@
 
 - Terminate a finite loop that has no data [\#30](https://github.com/getbouncer/scan-framework-android/pull/30) ([awushensky](https://github.com/awushensky))
 - Bump gradle from 3.6.3 to 4.0.0 [\#29](https://github.com/getbouncer/scan-framework-android/pull/29) ([dependabot-preview[bot]](https://github.com/apps/dependabot-preview))
-- Bump core-ktx from 1.2.0 to 1.3.0 [\#28](https://github.com/getbouncer/scan-framework-android/pull/28) ([dependabot-preview[bot]](https://github.com/apps/dependabot-preview))
 
 ## [2.0.0009](https://github.com/getbouncer/scan-framework-android/tree/2.0.0009) (2020-05-29)
 
@@ -60,6 +68,7 @@
 
 **Merged pull requests:**
 
+- Bump core-ktx from 1.2.0 to 1.3.0 [\#28](https://github.com/getbouncer/scan-framework-android/pull/28) ([dependabot-preview[bot]](https://github.com/apps/dependabot-preview))
 - Start aggregation timer on valid result [\#27](https://github.com/getbouncer/scan-framework-android/pull/27) ([awushensky](https://github.com/awushensky))
 - Stop ignoring scan timeout [\#26](https://github.com/getbouncer/scan-framework-android/pull/26) ([awushensky](https://github.com/awushensky))
 - Simplify results [\#25](https://github.com/getbouncer/scan-framework-android/pull/25) ([awushensky](https://github.com/awushensky))
