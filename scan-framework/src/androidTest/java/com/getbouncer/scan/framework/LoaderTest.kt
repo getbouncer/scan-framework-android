@@ -157,7 +157,7 @@ class LoaderTest {
 
         val byteBuffer = runBlocking { loader.loadData(false) }
         assertNotNull(byteBuffer)
-        assertEquals(0, byteBuffer.limit(), "File is not expected size")
+        assertEquals(9957868, byteBuffer.limit(), "File is not expected size")
         byteBuffer.rewind()
 
         // ensure not all bytes are zero
@@ -197,7 +197,7 @@ class LoaderTest {
 
         val byteBuffer = runBlocking { loader.loadData(true) }
         assertNotNull(byteBuffer)
-        assertEquals(0, byteBuffer.limit(), "File is not expected size")
+        assertEquals(9957868, byteBuffer.limit(), "File is not expected size")
         byteBuffer.rewind()
 
         // ensure not all bytes are zero

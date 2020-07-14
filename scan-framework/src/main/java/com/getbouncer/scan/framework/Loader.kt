@@ -296,13 +296,13 @@ abstract class UpdatingModelWebLoader(private val context: Context) : SignedUrlM
             is NetworkResult.Success ->
                 try {
                     DownloadDetails(
-                        url = URL(modelUpgradeResponse.body.modelUrl),
+                        url = URL(modelUpgradeResponse.body.url),
                         hash = modelUpgradeResponse.body.hash,
                         hashAlgorithm = modelUpgradeResponse.body.hashAlgorithm,
                         modelVersion = modelUpgradeResponse.body.modelVersion
                     ).apply { cachedDownloadDetails = this }
                 } catch (t: Throwable) {
-                    Log.e(Config.logTag, "Invalid signed url for model $modelClass: ${modelUpgradeResponse.body.modelUrl}")
+                    Log.e(Config.logTag, "Invalid signed url for model $modelClass: ${modelUpgradeResponse.body.url}")
                     null
                 }
             else -> {
@@ -351,7 +351,7 @@ abstract class UpdatingModelWebLoader(private val context: Context) : SignedUrlM
             localFolder.delete()
         }
         if (!localFolder.exists()) {
-            localFolder.mkdir()
+            localFolder.mkdirs()
         }
         return localFolder
     }
@@ -361,6 +361,7 @@ abstract class UpdatingModelWebLoader(private val context: Context) : SignedUrlM
      */
     override suspend fun clearCache() {
         cacheFolder.deleteRecursively()
+        cacheFolder.mkdirs()
     }
 }
 
