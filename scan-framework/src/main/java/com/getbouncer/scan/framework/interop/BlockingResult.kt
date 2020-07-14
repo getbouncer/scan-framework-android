@@ -11,67 +11,75 @@ import com.getbouncer.scan.framework.TerminatingResultHandler
 /**
  * An implementation of a result handler that does not use suspending functions. This allows interoperability with java.
  */
-abstract class JavaResultHandler<Input, Output, Verdict> : ResultHandler<Input, Output, Verdict> {
-    override suspend fun onResult(result: Output, data: Input) = onResultJava(result, data)
+abstract class BlockingResultHandler<Input, Output, Verdict> : ResultHandler<Input, Output, Verdict> {
+    override suspend fun onResult(result: Output, data: Input) = onResultBlocking(result, data)
 
-    abstract fun onResultJava(result: Output, data: Input): Verdict
+    abstract fun onResultBlocking(result: Output, data: Input): Verdict
 }
 
 /**
  * An implementation of a stateful result handler that does not use suspending functions. This allows interoperability
  * with java.
  */
-abstract class JavaStatefulResultHandler<Input, State, Output, Verdict>(
+abstract class BlockingStatefulResultHandler<Input, State, Output, Verdict>(
     initialState: State
 ) : StatefulResultHandler<Input, State, Output, Verdict>(initialState) {
-    override suspend fun onResult(result: Output, data: Input): Verdict = onResultJava(result, data)
+    override suspend fun onResult(result: Output, data: Input): Verdict = onResultBlocking(result, data)
 
-    abstract fun onResultJava(result: Output, data: Input): Verdict
+    abstract fun onResultBlocking(result: Output, data: Input): Verdict
 }
 
 /**
  * An implementation of a terminating result handler that does not use suspending functions. This allows
  * interoperability with java.
  */
-abstract class JavaTerminatingResultHandler<Input, State, Output>(
+abstract class BlockingTerminatingResultHandler<Input, State, Output>(
     initialState: State
 ) : TerminatingResultHandler<Input, State, Output>(initialState) {
-    override suspend fun onResult(result: Output, data: Input) = onResultJava(result, data)
+    override suspend fun onResult(result: Output, data: Input) = onResultBlocking(result, data)
 
-    abstract fun onResultJava(result: Output, data: Input)
+    override suspend fun onTerminatedEarly() = onTerminatedEarlyBlocking()
+
+    override suspend fun onAllDataProcessed() = onAllDataProcessedBlocking()
+
+    abstract fun onResultBlocking(result: Output, data: Input)
+
+    abstract fun onTerminatedEarlyBlocking()
+
+    abstract fun onAllDataProcessedBlocking()
 }
 
 /**
  * An implementation of a result listener that does not use suspending functions. This allows interoperability with
  * java.
  */
-abstract class JavaAggregateResultListener<DataFrame, State, InterimResult, FinalResult>
-    : AggregateResultListener<DataFrame, State, InterimResult, FinalResult> {
+abstract class BlockingAggregateResultListener<DataFrame, State, InterimResult, FinalResult> :
+    AggregateResultListener<DataFrame, State, InterimResult, FinalResult> {
     override suspend fun onInterimResult(result: InterimResult, state: State, frame: DataFrame) =
-        onJavaInterimResult(result, state, frame)
+        onInterimResultBlocking(result, state, frame)
 
     override suspend fun onResult(
         result: FinalResult,
         frames: Map<String, List<SavedFrame<DataFrame, State, InterimResult>>>
-    ) = onJavaResult(result, frames)
+    ) = onResultBlocking(result, frames)
 
-    override suspend fun onReset() = onJavaReset()
+    override suspend fun onReset() = onResetBlocking()
 
-    abstract fun onJavaInterimResult(result: InterimResult, state: State, frame: DataFrame)
+    abstract fun onInterimResultBlocking(result: InterimResult, state: State, frame: DataFrame)
 
-    abstract fun onJavaResult(
+    abstract fun onResultBlocking(
         result: FinalResult,
         frames: Map<String, List<SavedFrame<DataFrame, State, InterimResult>>>
     )
 
-    abstract fun onJavaReset()
+    abstract fun onResetBlocking()
 }
 
 /**
  * An implementation of a result aggregator that does not use suspending functions. This allows interoperability with
  * java.
  */
-abstract class JavaResultAggregator<DataFrame, State, AnalyzerResult, InterimResult, FinalResult>(
+abstract class BlockingResultAggregator<DataFrame, State, AnalyzerResult, InterimResult, FinalResult>(
     config: ResultAggregatorConfig,
     listener: AggregateResultListener<DataFrame, State, InterimResult, FinalResult>,
     initialState: State
@@ -80,9 +88,9 @@ abstract class JavaResultAggregator<DataFrame, State, AnalyzerResult, InterimRes
         result: AnalyzerResult,
         startAggregationTimer: () -> Unit,
         mustReturnFinal: Boolean
-    ): Pair<InterimResult, FinalResult?> = javaAggregateResult(result, startAggregationTimer, mustReturnFinal)
+    ): Pair<InterimResult, FinalResult?> = aggregateResultBlocking(result, startAggregationTimer, mustReturnFinal)
 
-    abstract fun javaAggregateResult(
+    abstract fun aggregateResultBlocking(
         result: AnalyzerResult,
         startAggregationTimer: () -> Unit,
         mustReturnFinal: Boolean
