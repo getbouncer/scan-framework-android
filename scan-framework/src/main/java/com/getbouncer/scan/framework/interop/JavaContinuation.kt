@@ -13,6 +13,7 @@ abstract class JavaContinuation<in T> @JvmOverloads constructor(
     runOn: CoroutineContext = Dispatchers.Default,
     private val listenOn: CoroutineContext = Dispatchers.Main
 ) : Continuation<T> {
+    override val context: CoroutineContext = runOn
     abstract fun onComplete(value: T)
     abstract fun onException(exception: Throwable)
     override fun resumeWith(result: Result<T>) = result.fold(
@@ -27,5 +28,4 @@ abstract class JavaContinuation<in T> @JvmOverloads constructor(
             }
         }
     )
-    override val context: CoroutineContext = runOn
 }
