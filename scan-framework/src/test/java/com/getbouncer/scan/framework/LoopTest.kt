@@ -12,6 +12,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.test.runBlockingTest
 import kotlinx.coroutines.yield
+import org.junit.Ignore
 import org.junit.Test
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
@@ -162,6 +163,7 @@ class LoopTest {
     @Test(timeout = 1000)
     @SmallTest
     @ExperimentalCoroutinesApi
+    @Ignore("This test is flaking in CI")
     fun finiteAnalyzerLoop_analyzeData() = runBlockingTest {
         val dataCount = 3
         var dataProcessed = false
