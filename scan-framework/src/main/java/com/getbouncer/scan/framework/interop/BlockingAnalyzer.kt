@@ -4,36 +4,37 @@ import com.getbouncer.scan.framework.Analyzer
 import com.getbouncer.scan.framework.AnalyzerFactory
 import com.getbouncer.scan.framework.AnalyzerPool
 import com.getbouncer.scan.framework.DEFAULT_ANALYZER_PARALLEL_COUNT
+import kotlinx.coroutines.runBlocking
 
 /**
  * An implementation of an analyzer that does not use suspending functions. This allows interoperability with java.
  */
-abstract class JavaAnalyzer<Input, State, Output> : Analyzer<Input, State, Output> {
-    override suspend fun analyze(data: Input, state: State): Output = analyzeJava(data, state)
+abstract class BlockingAnalyzer<Input, State, Output> : Analyzer<Input, State, Output> {
+    override suspend fun analyze(data: Input, state: State): Output = analyzeBlocking(data, state)
 
-    abstract fun analyzeJava(data: Input, state: State): Output
+    abstract fun analyzeBlocking(data: Input, state: State): Output
 }
 
 /**
  * An implementation of an analyzer factory that does not use suspending functions. This allows interoperability with
  * java.
  */
-abstract class JavaAnalyzerFactory<Output : Analyzer<*, *, *>> : AnalyzerFactory<Output> {
-    override suspend fun newInstance(): Output? = newInstanceJava()
+abstract class BlockingAnalyzerFactory<Output : Analyzer<*, *, *>> : AnalyzerFactory<Output> {
+    override suspend fun newInstance(): Output? = newInstanceBlocking()
 
-    abstract fun newInstanceJava(): Output?
+    abstract fun newInstanceBlocking(): Output?
 }
 
 /**
  * An implementation of an analyzer pool factory that does not use suspending functions. This allows interoperability
  * with java.
  */
-class JavaAnalyzerPoolFactory<DataFrame, State, Output> @JvmOverloads constructor(
-    private val analyzerFactory: JavaAnalyzerFactory<out Analyzer<DataFrame, State, Output>>,
+class BlockingAnalyzerPoolFactory<DataFrame, State, Output> @JvmOverloads constructor(
+    private val analyzerFactory: AnalyzerFactory<out Analyzer<DataFrame, State, Output>>,
     private val desiredAnalyzerCount: Int = DEFAULT_ANALYZER_PARALLEL_COUNT
 ) {
     fun buildAnalyzerPool() = AnalyzerPool(
         desiredAnalyzerCount = desiredAnalyzerCount,
-        analyzers = (0 until desiredAnalyzerCount).mapNotNull { analyzerFactory.newInstanceJava() }
+        analyzers = (0 until desiredAnalyzerCount).mapNotNull { runBlocking { analyzerFactory.newInstance() } }
     )
 }
