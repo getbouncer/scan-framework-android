@@ -160,8 +160,8 @@ class LoopTest {
         assertTrue { analyzerFailure }
     }
 
-    @Test(timeout = 2000)
-    @LargeTest
+    @Test(timeout = 1000)
+    @SmallTest
     @ExperimentalCoroutinesApi
     fun finiteAnalyzerLoop_analyzeData() = runBlockingTest {
         val dataCount = 3
