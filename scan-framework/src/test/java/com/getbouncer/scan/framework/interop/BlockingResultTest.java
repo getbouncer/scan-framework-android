@@ -51,12 +51,12 @@ public class BlockingResultTest {
     @MediumTest
     public void blockingResultHandler_works() throws InterruptedException {
         final ResultHandler<Integer, Integer, Boolean> resultHandler =
-                new BlockingResultHandler<Integer, Integer, Boolean>() {
-                    @Override
-                    public Boolean onResultBlocking(Integer result, Integer data) {
-                        return result != null && result.equals(data);
-                    }
-                };
+            new BlockingResultHandler<Integer, Integer, Boolean>() {
+                @Override
+                public Boolean onResultBlocking(Integer result, Integer data) {
+                    return result != null && result.equals(data);
+                }
+            };
 
         final Deferred<Boolean> deferred = BuildersKt.async(
             GlobalScope.INSTANCE,
@@ -81,12 +81,12 @@ public class BlockingResultTest {
     @MediumTest
     public void blockingStatefulResultHandler_works() throws InterruptedException {
         final StatefulResultHandler<Integer, Boolean, Integer, Boolean> resultHandler =
-                new BlockingStatefulResultHandler<Integer, Boolean, Integer, Boolean>(true) {
-                    @Override
-                    public Boolean onResultBlocking(Integer result, Integer data) {
-                        return result != null && result.equals(data) && getState();
-                    }
-                };
+            new BlockingStatefulResultHandler<Integer, Boolean, Integer, Boolean>(true) {
+                @Override
+                public Boolean onResultBlocking(Integer result, Integer data) {
+                    return result != null && result.equals(data) && getState();
+                }
+            };
 
         final Deferred<Boolean> deferred = BuildersKt.async(
             GlobalScope.INSTANCE,
@@ -113,22 +113,22 @@ public class BlockingResultTest {
         final TerminatingTestResult testResult = new TerminatingTestResult();
 
         final TerminatingResultHandler<Integer, Boolean, Integer> resultHandler =
-                new BlockingTerminatingResultHandler<Integer, Boolean, Integer>(true) {
-                    @Override
-                    public void onAllDataProcessedBlocking() {
-                        testResult.handledAllResults = true;
-                    }
+            new BlockingTerminatingResultHandler<Integer, Boolean, Integer>(true) {
+                @Override
+                public void onAllDataProcessedBlocking() {
+                    testResult.handledAllResults = true;
+                }
 
-                    @Override
-                    public void onTerminatedEarlyBlocking() {
-                        testResult.terminatedEarly = true;
-                    }
+                @Override
+                public void onTerminatedEarlyBlocking() {
+                    testResult.terminatedEarly = true;
+                }
 
-                    @Override
-                    public void onResultBlocking(Integer result, Integer data) {
-                        testResult.handledResult = true;
-                    }
-                };
+                @Override
+                public void onResultBlocking(Integer result, Integer data) {
+                    testResult.handledResult = true;
+                }
+            };
 
         final Deferred<Unit> ranAllDataProcessed = BuildersKt.async(
             GlobalScope.INSTANCE,
