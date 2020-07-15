@@ -20,9 +20,9 @@ abstract class BlockingAnalyzer<Input, State, Output> : Analyzer<Input, State, O
  * java.
  */
 abstract class BlockingAnalyzerFactory<Output : Analyzer<*, *, *>> : AnalyzerFactory<Output> {
-    override suspend fun newInstance(forImmediateUse: Boolean): Output? = newInstanceBlocking(forImmediateUse)
+    override suspend fun newInstance(): Output? = newInstanceBlocking()
 
-    abstract fun newInstanceBlocking(forImmediateUse: Boolean): Output?
+    abstract fun newInstanceBlocking(): Output?
 }
 
 /**
@@ -33,10 +33,10 @@ class BlockingAnalyzerPoolFactory<DataFrame, State, Output> @JvmOverloads constr
     private val analyzerFactory: AnalyzerFactory<out Analyzer<DataFrame, State, Output>>,
     private val desiredAnalyzerCount: Int = DEFAULT_ANALYZER_PARALLEL_COUNT
 ) {
-    fun buildAnalyzerPool(forImmediateUse: Boolean) = AnalyzerPool(
+    fun buildAnalyzerPool() = AnalyzerPool(
         desiredAnalyzerCount = desiredAnalyzerCount,
         analyzers = (0 until desiredAnalyzerCount).mapNotNull {
-            runBlocking { analyzerFactory.newInstance(forImmediateUse) }
+            runBlocking { analyzerFactory.newInstance() }
         }
     )
 }

@@ -269,12 +269,7 @@ abstract class SignedUrlModelWebFetcher(private val context: Context) : DirectDo
     override suspend fun getDownloadOutputFile(modelVersion: String) = File(context.cacheDir, localFileName)
 
     override suspend fun getDownloadDetails() =
-        when (val signedUrlResponse = getModelSignedUrl(
-            context,
-            modelClass,
-            modelVersion,
-            modelFileName
-        )) {
+        when (val signedUrlResponse = getModelSignedUrl(context, modelClass, modelVersion, modelFileName)) {
             is NetworkResult.Success ->
                 try {
                     URL(signedUrlResponse.body.modelUrl)

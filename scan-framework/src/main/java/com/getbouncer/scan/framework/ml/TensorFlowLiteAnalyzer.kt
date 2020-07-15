@@ -6,7 +6,6 @@ import com.getbouncer.scan.framework.Analyzer
 import com.getbouncer.scan.framework.AnalyzerFactory
 import com.getbouncer.scan.framework.Config
 import com.getbouncer.scan.framework.FetchedData
-import com.getbouncer.scan.framework.Fetcher
 import com.getbouncer.scan.framework.Loader
 import com.getbouncer.scan.framework.time.Timer
 import kotlinx.coroutines.sync.Mutex
@@ -70,8 +69,8 @@ abstract class TFLAnalyzerFactory<Output : Analyzer<*, *, *>>(
 
     private var loadedModel: ByteBuffer? = null
 
-    protected suspend fun createInterpreter(forImmediateUse: Boolean): Interpreter? {
-        val modelData = loadModel(forImmediateUse)
+    protected suspend fun createInterpreter(): Interpreter? {
+        val modelData = loadModel()
         return if (modelData == null) {
             Log.e(Config.logTag, "Unable to load model")
             null
@@ -80,7 +79,7 @@ abstract class TFLAnalyzerFactory<Output : Analyzer<*, *, *>>(
         }
     }
 
-    private suspend fun loadModel(forImmediateUse: Boolean): ByteBuffer? = loadModelMutex.withLock {
+    private suspend fun loadModel(): ByteBuffer? = loadModelMutex.withLock {
         loadedModel ?: run { loader.loadData(fetchedModel) }
     }
 }
