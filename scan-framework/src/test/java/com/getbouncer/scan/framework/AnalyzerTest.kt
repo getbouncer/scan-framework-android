@@ -13,7 +13,7 @@ class AnalyzerTest {
     @ExperimentalCoroutinesApi
     fun analyzerPoolCreateNormally() = runBlockingTest {
         class TestAnalyzerFactory : AnalyzerFactory<TestAnalyzer> {
-            override suspend fun newInstance(criticalPath: Boolean): TestAnalyzer? = TestAnalyzer()
+            override suspend fun newInstance(forImmediateUse: Boolean): TestAnalyzer? = TestAnalyzer()
         }
 
         val analyzerPool = AnalyzerPoolFactory(
@@ -31,7 +31,7 @@ class AnalyzerTest {
     @ExperimentalCoroutinesApi
     fun analyzerPoolCreateFailure() = runBlockingTest {
         class TestAnalyzerFactory : AnalyzerFactory<TestAnalyzer> {
-            override suspend fun newInstance(criticalPath: Boolean): TestAnalyzer? = null
+            override suspend fun newInstance(forImmediateUse: Boolean): TestAnalyzer? = null
         }
 
         val analyzerPool = AnalyzerPoolFactory(

@@ -303,7 +303,7 @@ class LoopTest {
     }
 
     private class TestAnalyzerFactory : AnalyzerFactory<TestAnalyzer> {
-        override suspend fun newInstance(criticalPath: Boolean): TestAnalyzer? = TestAnalyzer()
+        override suspend fun newInstance(forImmediateUse: Boolean): TestAnalyzer? = TestAnalyzer()
     }
 
     private suspend fun Job.joinTest() {

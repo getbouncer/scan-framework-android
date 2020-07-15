@@ -62,7 +62,7 @@ public class BlockingAnalyzerTest {
         final AnalyzerFactory<Analyzer<Integer, Boolean, Boolean>> factory =
             new BlockingAnalyzerFactory<Analyzer<Integer, Boolean, Boolean>>() {
                 @Override
-                public Analyzer<Integer, Boolean, Boolean> newInstanceBlocking(boolean criticalPath) {
+                public Analyzer<Integer, Boolean, Boolean> newInstanceBlocking(boolean forImmediateUse) {
                     return new Analyzer<Integer, Boolean, Boolean>() {
                         @NotNull
                         @Override
@@ -111,7 +111,7 @@ public class BlockingAnalyzerTest {
         final AnalyzerFactory<Analyzer<Integer, Boolean, Boolean>> factory =
             new BlockingAnalyzerFactory<Analyzer<Integer, Boolean, Boolean>>() {
                 @Override
-                public Analyzer<Integer, Boolean, Boolean> newInstanceBlocking(boolean criticalPath) {
+                public Analyzer<Integer, Boolean, Boolean> newInstanceBlocking(boolean forImmediateUse) {
                     return new Analyzer<Integer, Boolean, Boolean>() {
                         @NotNull
                         @Override
