@@ -62,8 +62,8 @@ abstract class TFLAnalyzerFactory<Output : Analyzer<*, *, *>>(private val loader
 
     private var loadedModel: ByteBuffer? = null
 
-    protected suspend fun createInterpreter(): Interpreter? {
-        val modelData = loadModel()
+    protected suspend fun createInterpreter(criticalPath: Boolean): Interpreter? {
+        val modelData = loadModel(criticalPath)
         return if (modelData == null) {
             Log.e(Config.logTag, "Unable to load model")
             null
@@ -72,10 +72,10 @@ abstract class TFLAnalyzerFactory<Output : Analyzer<*, *, *>>(private val loader
         }
     }
 
-    private suspend fun loadModel(): ByteBuffer? = loadModelMutex.withLock {
+    private suspend fun loadModel(criticalPath: Boolean): ByteBuffer? = loadModelMutex.withLock {
         var loadedModel = this.loadedModel
         if (loadedModel == null) {
-            loadedModel = loader.loadData()
+            loadedModel = loader.loadData(criticalPath)
             this.loadedModel = loadedModel
         }
         loadedModel

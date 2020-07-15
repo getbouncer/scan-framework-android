@@ -236,18 +236,8 @@ class FiniteAnalyzerLoop<DataFrame, State, Output>(
             resultHandler.onTerminatedEarly()
         }
 
-        return if (isFinished(timeElapsed)) {
-            unsubscribeFromFlow()
-            true
-        } else {
-            false
-        }
-    }
-
-    private fun isFinished(timeElapsed: Duration): Boolean {
-        val allFramesProcessed = framesProcessed.get() >= framesToProcess
+        val allFramesProcessed = framesProcessed >= framesToProcess
         val exceededTimeLimit = timeElapsed > timeLimit
-
         return allFramesProcessed || exceededTimeLimit
     }
 

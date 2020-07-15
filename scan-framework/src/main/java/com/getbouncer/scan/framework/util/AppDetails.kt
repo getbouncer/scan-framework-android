@@ -25,11 +25,11 @@ data class AppDetails(
     }
 }
 
-private fun getAppPackageName(context: Context): String? = context.applicationContext.packageName
+fun getAppPackageName(context: Context): String? = context.applicationContext.packageName
 
 private fun getApplicationId(): String = "" // no longer available in later versions of gradle.
 
-private fun getLibraryPackageName(): String = BuildConfig.LIBRARY_PACKAGE_NAME
+fun getLibraryPackageName(): String = BuildConfig.LIBRARY_PACKAGE_NAME
 
 fun getSdkVersion(): String = BuildConfig.VERSION_NAME
 

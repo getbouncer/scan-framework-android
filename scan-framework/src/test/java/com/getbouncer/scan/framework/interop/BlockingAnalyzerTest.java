@@ -4,8 +4,6 @@ import androidx.test.filters.MediumTest;
 
 import com.getbouncer.scan.framework.Analyzer;
 import com.getbouncer.scan.framework.AnalyzerFactory;
-import com.getbouncer.scan.framework.AnalyzerPool;
-import com.getbouncer.scan.framework.AnalyzerPoolFactory;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -63,9 +61,8 @@ public class BlockingAnalyzerTest {
     public void blockingAnalyzerFactory_works() throws InterruptedException {
         final AnalyzerFactory<Analyzer<Integer, Boolean, Boolean>> factory =
             new BlockingAnalyzerFactory<Analyzer<Integer, Boolean, Boolean>>() {
-                @Nullable
                 @Override
-                public Analyzer<Integer, Boolean, Boolean> newInstanceBlocking() {
+                public Analyzer<Integer, Boolean, Boolean> newInstanceBlocking(boolean criticalPath) {
                     return new Analyzer<Integer, Boolean, Boolean>() {
                         @NotNull
                         @Override
@@ -96,7 +93,7 @@ public class BlockingAnalyzerTest {
                     CoroutineScope coroutineScope,
                     Continuation<? super Analyzer<Integer, Boolean, Boolean>> continuation
                 ) {
-                    return factory.newInstance(continuation);
+                    return factory.newInstance(true, continuation);
                 }
             }
         );
@@ -110,12 +107,11 @@ public class BlockingAnalyzerTest {
 
     @Test
     @MediumTest
-    public void blockingAnalyzerPoolFactory_works() throws InterruptedException {
+    public void blockingAnalyzerPoolFactory_works() {
         final AnalyzerFactory<Analyzer<Integer, Boolean, Boolean>> factory =
             new BlockingAnalyzerFactory<Analyzer<Integer, Boolean, Boolean>>() {
-                @Nullable
                 @Override
-                public Analyzer<Integer, Boolean, Boolean> newInstanceBlocking() {
+                public Analyzer<Integer, Boolean, Boolean> newInstanceBlocking(boolean criticalPath) {
                     return new Analyzer<Integer, Boolean, Boolean>() {
                         @NotNull
                         @Override
@@ -139,6 +135,6 @@ public class BlockingAnalyzerTest {
         final BlockingAnalyzerPoolFactory<Integer, Boolean, Boolean> poolFactory =
                 new BlockingAnalyzerPoolFactory<>(factory);
 
-        Assert.assertNotNull(poolFactory.buildAnalyzerPool());
+        Assert.assertNotNull(poolFactory.buildAnalyzerPool(true));
     }
 }

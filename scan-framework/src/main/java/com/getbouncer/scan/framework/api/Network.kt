@@ -8,6 +8,8 @@ import com.getbouncer.scan.framework.Config
 import com.getbouncer.scan.framework.NetworkConfig
 import com.getbouncer.scan.framework.time.Timer
 import com.getbouncer.scan.framework.util.DeviceIds
+import com.getbouncer.scan.framework.util.cacheFirstResult
+import com.getbouncer.scan.framework.util.getAppPackageName
 import com.getbouncer.scan.framework.util.getDeviceName
 import com.getbouncer.scan.framework.util.getOsVersion
 import com.getbouncer.scan.framework.util.getPlatform
@@ -42,8 +44,6 @@ private const val CONTENT_ENCODING_GZIP = "gzip"
 private const val GZIP_MIN_SIZE_BYTES = 1500
 
 private val networkTimer by lazy { Timer.newInstance(Config.logTag, "network") }
-
-private val userAgent by lazy { "bouncer/${getPlatform()}/${getDeviceName()}/${getOsVersion()}/${getSdkVersion()}/${getSdkFlavor()}" }
 
 /**
  * Send a post request to a bouncer endpoint.
@@ -281,7 +281,7 @@ private fun get(context: Context, path: String): NetworkResult<out String, out S
  */
 private fun HttpURLConnection.setRequestHeaders(context: Context) {
     setRequestProperty(REQUEST_PROPERTY_AUTHENTICATION, Config.apiKey)
-    setRequestProperty(REQUEST_PROPERTY_USER_AGENT, userAgent)
+    setRequestProperty(REQUEST_PROPERTY_USER_AGENT, buildUserAgent(context))
     setRequestProperty(REQUEST_PROPERTY_DEVICE_ID, buildDeviceId(context))
 }
 
@@ -313,6 +313,10 @@ private val buildDeviceId = memoize { context: Context ->
             Base64.URL_SAFE
         )
     }
+}
+
+private val buildUserAgent = cacheFirstResult { context: Context ->
+    "bouncer/${getPlatform()}/${getAppPackageName(context)}/${getDeviceName()}/${getOsVersion()}/${getSdkVersion()}/${getSdkFlavor()}"
 }
 
 private fun writeGzipData(outputStream: OutputStream, data: String) {
