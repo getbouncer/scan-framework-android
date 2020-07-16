@@ -20,7 +20,7 @@ interface Analyzer<Input, State, Output> {
  * A factory to create analyzers.
  */
 interface AnalyzerFactory<Output : Analyzer<*, *, *>> {
-    suspend fun newInstance(criticalPath: Boolean): Output?
+    suspend fun newInstance(): Output?
 }
 
 /**
@@ -38,8 +38,8 @@ class AnalyzerPoolFactory<DataFrame, State, Output> @JvmOverloads constructor(
     private val analyzerFactory: AnalyzerFactory<out Analyzer<DataFrame, State, Output>>,
     private val desiredAnalyzerCount: Int = DEFAULT_ANALYZER_PARALLEL_COUNT
 ) {
-    suspend fun buildAnalyzerPool(criticalPath: Boolean) = AnalyzerPool(
+    suspend fun buildAnalyzerPool() = AnalyzerPool(
         desiredAnalyzerCount = desiredAnalyzerCount,
-        analyzers = (0 until desiredAnalyzerCount).mapNotNull { analyzerFactory.newInstance(criticalPath) }
+        analyzers = (0 until desiredAnalyzerCount).mapNotNull { analyzerFactory.newInstance() }
     )
 }

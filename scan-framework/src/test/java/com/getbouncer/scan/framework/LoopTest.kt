@@ -41,7 +41,7 @@ class LoopTest {
         val analyzerPool = AnalyzerPoolFactory(
             analyzerFactory = TestAnalyzerFactory(),
             desiredAnalyzerCount = 12
-        ).buildAnalyzerPool(false)
+        ).buildAnalyzerPool()
 
         val loop = ProcessBoundAnalyzerLoop(
             analyzerPool = analyzerPool,
@@ -95,7 +95,7 @@ class LoopTest {
         val analyzerPool = AnalyzerPoolFactory(
             analyzerFactory = TestAnalyzerFactory(),
             desiredAnalyzerCount = 12
-        ).buildAnalyzerPool(false)
+        ).buildAnalyzerPool()
 
         val loop = ProcessBoundAnalyzerLoop(
             analyzerPool = analyzerPool,
@@ -142,7 +142,7 @@ class LoopTest {
         val analyzerPool = AnalyzerPoolFactory(
             analyzerFactory = TestAnalyzerFactory(),
             desiredAnalyzerCount = 0
-        ).buildAnalyzerPool(false)
+        ).buildAnalyzerPool()
 
         val loop = ProcessBoundAnalyzerLoop(
             analyzerPool = analyzerPool,
@@ -188,7 +188,7 @@ class LoopTest {
         val analyzerPool = AnalyzerPoolFactory(
             analyzerFactory = TestAnalyzerFactory(),
             desiredAnalyzerCount = 12
-        ).buildAnalyzerPool(false)
+        ).buildAnalyzerPool()
 
         val loop = FiniteAnalyzerLoop(
             analyzerPool = analyzerPool,
@@ -235,7 +235,7 @@ class LoopTest {
         val analyzerPool = AnalyzerPoolFactory(
             analyzerFactory = TestAnalyzerFactory(),
             desiredAnalyzerCount = 12
-        ).buildAnalyzerPool(false)
+        ).buildAnalyzerPool()
 
         val loop = FiniteAnalyzerLoop(
             analyzerPool = analyzerPool,
@@ -272,7 +272,7 @@ class LoopTest {
         val analyzerPool = AnalyzerPoolFactory(
             analyzerFactory = TestAnalyzerFactory(),
             desiredAnalyzerCount = 12
-        ).buildAnalyzerPool(false)
+        ).buildAnalyzerPool()
 
         val loop = FiniteAnalyzerLoop(
             analyzerPool = analyzerPool,
@@ -303,7 +303,7 @@ class LoopTest {
     }
 
     private class TestAnalyzerFactory : AnalyzerFactory<TestAnalyzer> {
-        override suspend fun newInstance(criticalPath: Boolean): TestAnalyzer? = TestAnalyzer()
+        override suspend fun newInstance(): TestAnalyzer? = TestAnalyzer()
     }
 
     private suspend fun Job.joinTest() {

@@ -62,7 +62,7 @@ public class BlockingAnalyzerTest {
         final AnalyzerFactory<Analyzer<Integer, Boolean, Boolean>> factory =
             new BlockingAnalyzerFactory<Analyzer<Integer, Boolean, Boolean>>() {
                 @Override
-                public Analyzer<Integer, Boolean, Boolean> newInstanceBlocking(boolean criticalPath) {
+                public Analyzer<Integer, Boolean, Boolean> newInstanceBlocking() {
                     return new Analyzer<Integer, Boolean, Boolean>() {
                         @NotNull
                         @Override
@@ -93,7 +93,7 @@ public class BlockingAnalyzerTest {
                     CoroutineScope coroutineScope,
                     Continuation<? super Analyzer<Integer, Boolean, Boolean>> continuation
                 ) {
-                    return factory.newInstance(true, continuation);
+                    return factory.newInstance(continuation);
                 }
             }
         );
@@ -111,7 +111,7 @@ public class BlockingAnalyzerTest {
         final AnalyzerFactory<Analyzer<Integer, Boolean, Boolean>> factory =
             new BlockingAnalyzerFactory<Analyzer<Integer, Boolean, Boolean>>() {
                 @Override
-                public Analyzer<Integer, Boolean, Boolean> newInstanceBlocking(boolean criticalPath) {
+                public Analyzer<Integer, Boolean, Boolean> newInstanceBlocking() {
                     return new Analyzer<Integer, Boolean, Boolean>() {
                         @NotNull
                         @Override
@@ -135,6 +135,6 @@ public class BlockingAnalyzerTest {
         final BlockingAnalyzerPoolFactory<Integer, Boolean, Boolean> poolFactory =
                 new BlockingAnalyzerPoolFactory<>(factory);
 
-        Assert.assertNotNull(poolFactory.buildAnalyzerPool(true));
+        Assert.assertNotNull(poolFactory.buildAnalyzerPool());
     }
 }
