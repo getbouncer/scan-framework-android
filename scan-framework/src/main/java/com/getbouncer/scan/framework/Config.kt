@@ -45,6 +45,12 @@ object Config {
      */
     @JvmStatic
     val trackStats: Boolean = true
+
+    /**
+     * Whether or not to upload stats
+     */
+    @JvmStatic
+    var uploadStats: Boolean = true
 }
 
 object NetworkConfig {

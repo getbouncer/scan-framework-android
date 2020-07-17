@@ -22,8 +22,8 @@ data class ScanStatistics(
     @SerialName("repeating_tasks") val repeatingTasks: Map<String, RepeatingTaskStatistics>
 ) {
     companion object {
-        suspend fun fromStats(): ScanStatistics {
-            val stats = ScanStatistics(
+        fun fromStats(): ScanStatistics {
+            return ScanStatistics(
                 tasks = Stats.getTasks().mapValues { entry ->
                     entry.value.map { TaskStatistics.fromTaskStats(it) }
                 },
@@ -31,8 +31,6 @@ data class ScanStatistics(
                     RepeatingTaskStatistics.fromRepeatingTaskStats(it.value)
                 }
             )
-            Stats.resetStats()
-            return stats
         }
     }
 }
